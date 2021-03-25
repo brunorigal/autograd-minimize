@@ -1,45 +1,10 @@
 import tensorflow as tf
 import numpy as np
-import scipy.optimize as sopt
-# https://stackoverflow.com/questions/59029854/use-scipy-optimizer-with-tensorflow-2-0-for-neural-network-training
-def model(x):
-    # return tf.reduce_sum(tf.square(tf.cast(x, tf.float32)-tf.constant(2, dtype=tf.float32)))
-    return tf.reduce_sum(tf.square(tf.sinh(tf.cast(x, tf.float32))-tf.constant(2, dtype=tf.float32)))
+from numpy.random import random
 
 
 
-
-
-@tf.function
-def val_and_grad(x):
-    with tf.GradientTape() as tape:
-        tape.watch(x)
-        loss = model(x)
-    grad = tape.gradient(loss, x)
-    return loss, grad
-
-def func(x):   
-    res = val_and_grad(tf.constant(x, dtype=tf.float32))
-    return [vv.numpy().astype(np.float64)  for vv in res]
-
-@tf.function
-def _back_over_back_hvp(func, input_var, vector):
-    with tf.GradientTape() as outer_tape:
-        with tf.GradientTape() as inner_tape:
-            loss = func(input_var)
-        grads = inner_tape.gradient(loss, input_var)
-    
-    hvp = outer_tape.gradient(grads, input_var, output_gradients=vector)
-    return hvp
-
-def tf_wrapper(func, input_var, vector):
-
-    res = _back_over_back_hvp(func, tf.Variable(input_var, dtype=tf.float32,trainable=True), tf.Variable(vector, dtype=tf.float32, trainable=True)).numpy().astype(np.float64)
-
-    return res
-
-
-class wrap_tf:
+class TfWrapper:
     def __init__(self, func, precision='float32'):
         self.func = func
 
@@ -47,70 +12,118 @@ class wrap_tf:
             self.tf_prec = tf.float32
         elif precision=='float32':
             self.tf_prec = tf.float64 
+        else:
+            raise ValueError
 
-    
+    def eval_func(self, input_var):
+        if isinstance(input_var, dict):
+            loss = self.func(**input_var)
+        elif isinstance(input_var, list) or isinstance(input_var, tuple):
+            loss = self.func(*input_var)
+        else:
+            loss = self.func(input_var)
+        return loss
+
     def get_value_and_grad(self, input_var):
-        res = self._get_value_and_grad_tf(tf.constant(input_var, dtype=self.tf_prec))
-        return [vv.numpy().astype(np.float64)  for vv in res]
+        
+        input_var_ = unconcat_(tf.constant(input_var, dtype=self.tf_prec), self.shapes)
+        value, grads = self._get_value_and_grad_tf(input_var_)
+
+        return [value.numpy().astype(np.float64), concat_(grads)[0].numpy().astype(np.float64)]
 
 
     @tf.function
     def _get_value_and_grad_tf(self, input_var):
         with tf.GradientTape() as tape:
             tape.watch(input_var)
-            loss = self.func(input_var)
+            loss = self.eval_func(input_var)
+
         grad = tape.gradient(loss, input_var)
         return loss, grad
 
     @tf.function
     def _get_hvp_tf(self, input_var, vector):
         with tf.GradientTape() as outer_tape:
+            outer_tape.watch(input_var)            
             with tf.GradientTape() as inner_tape:
-                loss = self.func(input_var)
+                inner_tape.watch(input_var)
+                loss = self.eval_func(input_var)
+
             grads = inner_tape.gradient(loss, input_var)
         
         hvp = outer_tape.gradient(grads, input_var, output_gradients=vector)
         return hvp
 
     def get_hvp(self, input_var, vector):
+        input_var_ = unconcat_(tf.constant(input_var, dtype=self.tf_prec), self.shapes)
+        vector_ = unconcat_(tf.constant(vector, dtype=self.tf_prec), self.shapes)
 
-        
-from time import time
-tic = time()
-resdd= sopt.minimize(fun=func, x0=np.ones(1000),
-                                    jac=True, hessp=lambda input_var, vector: tf_wrapper(model, input_var, vector), 
-                                    # method='L-BFGS-B'
-                                    method='Newton-CG'
-                                    )
-print(time()-tic)
-print(np.mean(np.abs(resdd.x-2)))
-import pdb;pdb.set_trace()
+        res = self._get_hvp_tf(input_var_, vector_)
+        return  concat_(res)[0].numpy().astype(np.float64)
 
-res = ['Newton-CG', 'dogleg', 'trust-ncg', 'trust-krylov', 'trust-exact', 'trust-constr']
+    def get_input(self, input_var):
+        input_, self.shapes = concat_(input_var)
+        return input_
 
-
-from numpy.random import random
-
-smp = random((5,5))
-smv=random((3,3))
-
-Z = smp[:,None, :,None]*smp[None,:,None,:]
+    def get_output(self, output_var):
+        output_var_ = unconcat_(output_var, self.shapes)
+        return output_var_
 
 
-def model(smw=None, smp=None):
-    return tf.reduce_mean((smw[:,None,:,None]*smp[None,:,None,:]-tf.constant(Z, dtype=tf.float32))**2)
+def concat_(ten_vals):
+    ten = []
+    if isinstance(ten_vals, dict):
+        shapes = {}
+        for k, t in ten_vals.items():
+            if t is not None:
+                shapes[k] = t.shape
+                ten.append(tf.reshape(t, [-1]))
+        ten = tf.concat(ten, 0)
 
-@tf.function
-def val_and_grad(x):
-    with tf.GradientTape() as tape:
-        tape.watch(x)
-        loss = model(x)
-    grad = tape.gradient(loss, x)
-    return loss, grad
+    elif isinstance(ten_vals, list) or isinstance(ten_vals, tuple):
+        shapes = []
+        for t in ten_vals:
+            if t is not None:
+                shapes.append(t.shape)
+                ten.append(tf.reshape(t, [-1]))
+        ten = tf.concat(ten, 0)
 
-def func(x):   
-    res = val_and_grad(tf.constant(x, dtype=tf.float32))
-    return [vv.numpy().astype(np.float64)  for vv in res]
+    else:
+        shapes = None 
+        ten = ten_vals
+
+    return ten, shapes
 
 
-import pdb;pdb.set_trace()
+def unconcat_(ten, shapes):
+    current_ind = 0
+    if isinstance(shapes, dict):
+        ten_vals = {}
+        for k, sh in shapes.items():
+            next_ind = current_ind+np.prod(sh, dtype=np.int32)
+
+            if isinstance(ten, np.ndarray):
+                ten_vals[k] = np.reshape(ten[current_ind:next_ind], sh)
+            else:
+                ten_vals[k] = tf.reshape(
+                    tf.gather(ten, tf.range(current_ind, next_ind), 0), sh)
+
+            current_ind = next_ind
+
+    elif isinstance(shapes, list) or isinstance(shapes, tuple):
+        ten_vals = []
+        for sh in shapes:
+            next_ind = current_ind+np.prod(sh, dtype=np.int32)
+
+            if isinstance(ten, np.ndarray):
+                ten_vals.append(np.reshape(ten[current_ind:next_ind], sh))
+            else:
+                ten_vals.append(tf.reshape(
+                    tf.gather(ten, tf.range(current_ind, next_ind), 0), sh))
+
+            current_ind = next_ind
+
+    elif shapes is None:
+        ten_vals = ten
+
+    return ten_vals
