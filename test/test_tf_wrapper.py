@@ -1,3 +1,4 @@
+import pdb
 import tensorflow as tf
 import numpy as np
 from autograd_minimize import minimize
@@ -16,25 +17,27 @@ tic = time()
 res = minimize(model, x0, method='Newton-CG')
 print(time()-tic)
 
-smp = random((5,5))
-smv = random((3,3))
+smp = random((5, 5))
+smv = random((3, 3))
 
-Z = smv[:,None, :,None]*smp[None,:,None,:]
+Z = smv[:, None, :, None]*smp[None, :, None, :]
+
 
 def model(smv=None, smp=None):
-    return tf.reduce_mean((smv[:,None,:,None]*smp[None,:,None,:]-tf.constant(Z, dtype=tf.float32))**2)
-
-x0 = {'smv': random((3,3)), 'smp': random((5,5))}
-
-tic = time()
-res = minimize(model, x0)
-print(time()-tic)
+    return tf.reduce_mean((smv[:, None, :, None]*smp[None, :, None, :]-tf.constant(Z, dtype=tf.float32))**2)
 
 
-x0 = [random((3,3)), random((5,5))]
+x0 = {'smv': random((3, 3)), 'smp': random((5, 5))}
 
 tic = time()
 res = minimize(model, x0)
 print(time()-tic)
 
-import pdb;pdb.set_trace()
+
+x0 = [random((3, 3)), random((5, 5))]
+
+tic = time()
+res = minimize(model, x0)
+print(time()-tic)
+
+pdb.set_trace()

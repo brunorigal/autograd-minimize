@@ -3,15 +3,14 @@ import numpy as np
 from numpy.random import random
 
 
-
 class TfWrapper:
     def __init__(self, func, precision='float32'):
         self.func = func
 
-        if precision=='float32':
+        if precision == 'float32':
             self.tf_prec = tf.float32
-        elif precision=='float32':
-            self.tf_prec = tf.float64 
+        elif precision == 'float32':
+            self.tf_prec = tf.float64
         else:
             raise ValueError
 
@@ -25,12 +24,12 @@ class TfWrapper:
         return loss
 
     def get_value_and_grad(self, input_var):
-        
-        input_var_ = unconcat_(tf.constant(input_var, dtype=self.tf_prec), self.shapes)
+
+        input_var_ = unconcat_(tf.constant(
+            input_var, dtype=self.tf_prec), self.shapes)
         value, grads = self._get_value_and_grad_tf(input_var_)
 
         return [value.numpy().astype(np.float64), concat_(grads)[0].numpy().astype(np.float64)]
-
 
     @tf.function
     def _get_value_and_grad_tf(self, input_var):
@@ -44,22 +43,24 @@ class TfWrapper:
     @tf.function
     def _get_hvp_tf(self, input_var, vector):
         with tf.GradientTape() as outer_tape:
-            outer_tape.watch(input_var)            
+            outer_tape.watch(input_var)
             with tf.GradientTape() as inner_tape:
                 inner_tape.watch(input_var)
                 loss = self.eval_func(input_var)
 
             grads = inner_tape.gradient(loss, input_var)
-        
+
         hvp = outer_tape.gradient(grads, input_var, output_gradients=vector)
         return hvp
 
     def get_hvp(self, input_var, vector):
-        input_var_ = unconcat_(tf.constant(input_var, dtype=self.tf_prec), self.shapes)
-        vector_ = unconcat_(tf.constant(vector, dtype=self.tf_prec), self.shapes)
+        input_var_ = unconcat_(tf.constant(
+            input_var, dtype=self.tf_prec), self.shapes)
+        vector_ = unconcat_(tf.constant(
+            vector, dtype=self.tf_prec), self.shapes)
 
         res = self._get_hvp_tf(input_var_, vector_)
-        return  concat_(res)[0].numpy().astype(np.float64)
+        return concat_(res)[0].numpy().astype(np.float64)
 
     def get_input(self, input_var):
         input_, self.shapes = concat_(input_var)
@@ -89,7 +90,7 @@ def concat_(ten_vals):
         ten = tf.concat(ten, 0)
 
     else:
-        shapes = None 
+        shapes = None
         ten = ten_vals
 
     return ten, shapes
