@@ -53,6 +53,8 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
                               tol=tol, callback=callback, options=options)
 
     optim_res.x = wrapper.get_output(optim_res.x)
-    optim_res['jac'] = wrapper.get_output(optim_res['jac'])
+    
+    if 'jac' in optim_res.keys():
+        optim_res.jac = wrapper.get_output(optim_res.jac)
 
     return optim_res
