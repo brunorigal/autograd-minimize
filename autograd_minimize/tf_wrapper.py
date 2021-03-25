@@ -24,7 +24,7 @@ class TfWrapper:
         return loss
 
     def get_value_and_grad(self, input_var):
-
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
             input_var, dtype=self.tf_prec), self.shapes)
         value, grads = self._get_value_and_grad_tf(input_var_)
@@ -54,6 +54,7 @@ class TfWrapper:
         return hvp
 
     def get_hvp(self, input_var, vector):
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
             input_var, dtype=self.tf_prec), self.shapes)
         vector_ = unconcat_(tf.constant(
@@ -67,6 +68,7 @@ class TfWrapper:
         return input_
 
     def get_output(self, output_var):
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         output_var_ = unconcat_(output_var, self.shapes)
         return output_var_
 
