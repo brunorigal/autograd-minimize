@@ -7,7 +7,7 @@ setuptools.setup(
     name='autograd_minimize',  
     version='0.1',
     author="Bruno Rigal",
-    description="A wrapper of scipy.minimize with autograd.",
+    description="A wrapper of scipy minimize with automatic gradient and hessian computation.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/brunorigal/autograd_minimize",
