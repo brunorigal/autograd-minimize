@@ -19,15 +19,6 @@ class TorchWrapper(BaseWrapper):
         
         self.hvp_func = hvp if hvp_type=='hvp' else vhp
 
-    def get_input(self, input_var):
-        input_, self.shapes = concat_(input_var)
-        return input_
-
-    def get_output(self, output_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
-        output_var_ = unconcat_(output_var, self.shapes)
-        return output_var_
-
     def get_value_and_grad(self, input_var):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
 
