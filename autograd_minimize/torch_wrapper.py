@@ -7,7 +7,7 @@ from torch.autograd.functional import hvp, vhp, hessian
 
 
 class TorchWrapper(BaseWrapper):
-    def __init__(self, func, precision='float32', hvp_type='hvp'):
+    def __init__(self, func, precision='float32', hvp_type='vhp'):
         self.func = func
 
         if precision == 'float32':
@@ -46,12 +46,18 @@ class TorchWrapper(BaseWrapper):
 
     def get_hvp(self, input_var, vector):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        
         input_var_ = unconcat_(torch.tensor(
-            input_var, dtype=self.precision, requires_grad=True), self.shapes)
+            input_var, dtype=self.precision), self.shapes)
         vector_ = unconcat_(torch.tensor(
             vector, dtype=self.precision), self.shapes)
+        
+        if isinstance(input_var_, dict): 
+            input_var_ = tuple(input_var_.values())
+        if isinstance(vector_, dict): 
+            vector_ = tuple(vector_.values())
 
-        loss, vhp_res = self.hvp_func(self._eval_func, input_var_, v=vector_)
+        loss, vhp_res = self.hvp_func(self.func, input_var_, v=vector_)
 
         return concat_(vhp_res)[0].cpu().detach().numpy().astype(np.float64)
 
@@ -59,7 +65,9 @@ class TorchWrapper(BaseWrapper):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = torch.tensor(input_var, dtype=self.precision)
 
-        hess = hessian(self._eval_func, unconcat_(input_var_, self.shapes),
-            vectorize=False).cpu().detach().numpy().astype(np.float64)
+        def func(inp):
+            return self._eval_func(unconcat_(inp, self.shapes))
 
-        return hess
+        hess = hessian(func, input_var_,vectorize=False)
+
+        return hess.cpu().detach().numpy().astype(np.float64)
