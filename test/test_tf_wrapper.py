@@ -61,7 +61,7 @@ def test_cstr_opt():
     assert_almost_equal(res.x, np.array([1.4, 1.7]), decimal=6)
 
 
-def test_matrix_decomposition(shape=(10,20), inner_shape=3, method=None):
+def test_matrix_decomposition(shape=(10,20), inner_shape=3, method='CG'):
     U = random((shape[0], inner_shape))
     V = random((inner_shape, shape[1]))
     prod = U@V
@@ -72,10 +72,12 @@ def test_matrix_decomposition(shape=(10,20), inner_shape=3, method=None):
     def model_torch(smv=None, smp=None):
         return ((smv[:, None, :, None]*smp[None, :, None, :]-torch.tensor(Z, dtype=torch.float32))**2).mean()
 
-    x0 = {'U': random((shape[0], inner_shape)), 'V': random((inner_shape, shape[1]))}
+    x0 = {'U': -random((shape[0], inner_shape)), 'V': random((inner_shape, shape[1]))}
 
     tic = time()
-    res = minimize(model, x0, method=method)
+    res = minimize(model, x0, method=method, 
+        bounds={'U': (0, None), 'V': [(0, None)]*inner_shape* shape[1]}
+        )
     print(method, time()-tic, res.fun)
 
     x0 = [random((shape[0], inner_shape)), random((inner_shape, shape[1]))]
@@ -85,3 +87,4 @@ def test_matrix_decomposition(shape=(10,20), inner_shape=3, method=None):
     print(method, time()-tic, res.fun)
 
 
+test_matrix_decomposition()
