@@ -33,7 +33,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
         , defaults to None
     :type bounds: tuple, list, dict or np.ndarray, optional
 
-    :param constraints: [description], defaults to ()
+    :param constraints: Currently similar to the definition given in , defaults to ()
     :type constraints: tuple, optional
 
     :param tol: Tolerance for termination, defaults to None
@@ -59,7 +59,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
     if bounds is not None:
         assert method in [None,  'L-BFGS-B', 'TNC', 'SLSQP', 'Powell', 'trust-constr'], 'bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr'
 
-    if constraints is not None:
+    if constraints is not ():
         assert method in ['COBYLA', 'SLSQP', 'trust-constr'], 'Constraints are only available for COBYLA, SLSQP and trust-constr'
 
     optim_res = sopt.minimize(wrapper.get_value_and_grad,
@@ -75,7 +75,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
 
     optim_res.x = wrapper.get_output(optim_res.x)
 
-    if 'jac' in optim_res.keys():
+    if 'jac' in optim_res.keys() and len(optim_res.jac)>0:
         optim_res.jac = wrapper.get_output(optim_res.jac)
 
     return optim_res
