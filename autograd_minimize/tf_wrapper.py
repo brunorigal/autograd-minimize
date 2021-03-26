@@ -14,21 +14,6 @@ class TfWrapper(BaseWrapper):
         else:
             raise ValueError
 
-    def get_input(self, input_var):
-        input_, self.shapes = concat_(input_var)
-        return input_
-
-    def get_output(self, output_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
-        output_var_ = unconcat_(output_var, self.shapes)
-        return output_var_
-
-    def get_bounds(self, bounds):
-        return bounds
-
-    def get_constraints(self, constraints):
-        return constraints
-
     def get_value_and_grad(self, input_var):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
