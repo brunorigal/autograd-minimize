@@ -16,13 +16,13 @@ class TfWrapper(BaseWrapper):
         else:
             raise ValueError
 
-        if hvp_type=='forward_over_back_hvp':
+        if hvp_type=='forward_over_back':
             self.hvp_func =_forward_over_back_hvp
-        elif hvp_type=='back_over_forward_hvp':
+        elif hvp_type=='back_over_forward':
             self.hvp_func =_back_over_forward_hvp
-        elif hvp_type=='tf_gradients_forward_over_back_hvp':
+        elif hvp_type=='tf_gradients_forward_over_back':
             self.hvp_func =_tf_gradients_forward_over_back_hvp
-        elif hvp_type=='back_over_back_hvp' or hvp_type is None:
+        elif hvp_type=='back_over_back' or hvp_type is None:
             self.hvp_func =_back_over_back_hvp
         else:
             raise NotImplementedError

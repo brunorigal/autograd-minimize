@@ -3,7 +3,9 @@ from .torch_wrapper import TorchWrapper
 import scipy.optimize as sopt
 
 
-def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=None, constraints=(), tol=None, callback=None, options=None):
+def minimize(fun, x0, backend='tf', precision='float32', method=None, 
+    hvp_type=None,
+    bounds=None, constraints=(), tol=None, callback=None, options=None):
     """
     wrapper around the [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)
     function of scipy which includes an automatic computation of gradients, 
@@ -21,8 +23,30 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
     :param precision: one of 'float32' or 'float64', defaults to 'float32'
     :type precision: str, optional
 
-    :param method: method used by the optimizer, defaults to None
+    :param method: method used by the optimizer, it should be one of: 
+        'Nelder-Mead', 
+        'Powell', 
+        'CG', 
+        'BFGS', 
+        'Newton-CG', 
+        'L-BFGS-B', 
+        'TNC', 
+        'COBYLA', 
+        'SLSQP', 
+        'trust-constr',
+        'dogleg',  # requires positive semi definite hessian
+        'trust-ncg', 
+        'trust-exact', # requires hessian
+        'trust-krylov'
+        , defaults to None
     :type method: str, optional
+
+    :param hvp_type: type of computation scheme for the hessian vector product
+        for the torch backend it is one of hvp and vhp (vhp is faster according to the [doc](https://pytorch.org/docs/stable/autograd.html))
+        for the tf backend it is one of 'forward_over_back', 'back_over_forward', 'tf_gradients_forward_over_back' and 'back_over_back'
+        Some infos about the most interesting scheme are given [here](https://www.tensorflow.org/api_docs/python/tf/autodiff/ForwardAccumulator)
+        , defaults to None
+    :type hvp_type: str, optional
 
     :param bounds: Bounds on the input variables, only available for L-BFGS-B, TNC, SLSQP, Powell, and trust-constr methods.
         It can be: 
@@ -50,9 +74,9 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None, bounds=Non
     """
 
     if backend == 'tf':
-        wrapper = TfWrapper(fun, precision=precision)
+        wrapper = TfWrapper(fun, precision=precision, hvp_type=hvp_type)
     elif backend == 'torch':
-        wrapper = TorchWrapper(fun, precision=precision)
+        wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type)
     else:
         raise NotImplementedError
 
