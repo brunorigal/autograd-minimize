@@ -9,6 +9,9 @@ from numpy.testing import assert_almost_equal
 
 
 def rosen_tst(backend='torch'):
+    """
+    Adapated from: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+    """   
 
     def rosen_tf(x):
         return tf.reduce_sum(100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0)
@@ -48,6 +51,10 @@ def test_rosen_torch():
     rosen_tst('torch')  
 
 def test_cstr_opt():
+    """
+    Adapated from: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
+    """    
+    
     fun = lambda x: (x[0] - 1)**2 + (x[1] - 2.5)**2
     cons = ({'type': 'ineq', 'fun': lambda x:  x[0] - 2 * x[1] + 2},
             {'type': 'ineq', 'fun': lambda x: -x[0] - 2 * x[1] + 6},
@@ -85,6 +92,3 @@ def test_matrix_decomposition(shape=(10,20), inner_shape=3, method='CG'):
     tic = time()
     res = minimize(model, x0, method=method)
     print(method, time()-tic, res.fun)
-
-
-test_matrix_decomposition()
