@@ -59,7 +59,7 @@ print(np.mean(res.x-1))
 >>> -1.6946999359390702e-12
 ```
 
-Let's now try to do matrix factorization. In this case it is much easier to deal with a function with two inputs. in this case, the input should be a dict or a list with a similar singature as the function: 
+Let's now try to do matrix factorization. In this case it is much easier to deal with a function with two inputs, where the input should be a dict or a list with a similar singature as the function: 
 
 ```
 shape = (10, 15)
@@ -88,24 +88,22 @@ You can also set bounds (only for the methods: L-BFGS-B, TNC, SLSQP, Powell, and
 If the bounds is a tuple, the same bound is applied to all variables:
 
 ```
-res = minimize(mat_fac, x0, bounds=(0, None))
-print(res.fun)
->>> 1.5936443276132195e-08
+res = minimize(mat_fac, x0, bounds=(None, 0))
+print(res.x['U'].mean())
+>>> -0.6171053993128699
 ```
 
 You can apply bounds only to a subset of variables by using a list or a dict (but it should be the same as the format of input x0):
 
 ```
-res = minimize(mat_fac, x0, bounds={'U': (0, None), 'V': (-1, None)},)
-print(res.fun)
->>> 1.5481352022561623e-07
+res = minimize(mat_fac, x0, bounds={'U': (None, 0), 'V': (-1, None)})
+print(res.x['U'].mean(), res.x['V'].mean())
+>>> -0.8173837691822693 0.11222992115637932
 ```
 
 Inside each variable of the dict/list, you can pass a numpy array or a list of 
-bounds which the same shape as the variable to specify in more details the bounds:
+bounds which the same shape or len as the variable to specify in more details the bounds:
 
 ```
 res = minimize(mat_fac, x0, bounds={'U': (0, None), 'V': [(0, None)]*inner_shape*shape[1]})
-print(res.fun)
->>> 2.8876094404495234e-08
 ```
