@@ -7,7 +7,10 @@ import numpy as np
 class BaseWrapper(ABC):
 
     def get_input(self, input_var):
+        self.input_type = type(input_var)
+        assert self.input_type in [dict, list, np.ndarray], 'The initial input to your optimized function should be one of dict, list or np.ndarray'
         input_, self.shapes = concat_(input_var)
+        self.var_num = input_.shape[0]
         return input_
 
     def get_output(self, output_var):
@@ -16,7 +19,44 @@ class BaseWrapper(ABC):
         return output_var_
 
     def get_bounds(self, bounds):
-        return bounds
+
+        if bounds is not None:
+            if isinstance(bounds, tuple):
+                assert len(bounds)==2
+                new_bounds = [bounds]*self.var_num
+
+            elif isinstance(bounds, list):
+                assert self.input_type == list 
+                assert len(self.shapes)==len(bounds)
+                new_bounds = []
+                for sh, bounds_ in zip(self.shapes, bounds):
+                    if isinstance(bounds_, tuple):
+                        assert len(bounds_)==2
+                        new_bounds+=[bounds_]*np.prod(sh, dtype=np.int32)
+                    elif (isinstance(bounds_, list) or isinstance(bounds_, np.ndarray)):
+                        assert np.prod(sh)==np.prod(bounds_.shape)
+                        new_bounds+=np.concatenate(np.reshape(bounds_, -1)).tolist()
+                    else:
+                        raise TypeError
+
+            elif isinstance(bounds, dict):
+                assert self.input_type == dict 
+                assert set(self.shapes.keys())==set(bounds.keys())
+
+                new_bounds = []
+                for k in self.shapes.keys():
+                    sh = self.shapes[k]
+                    if isinstance(bounds[k], tuple):
+                        assert len(bounds[k])==2
+                        new_bounds+=[bounds[k]]*np.prod(sh, dtype=np.int32)
+                    elif (isinstance(bounds[k], list) or isinstance(bounds[k], np.ndarray)):
+                        assert np.prod(sh)==np.prod(bounds[k].shape)
+                        new_bounds+=np.concatenate(np.reshape(bounds[k], -1)).tolist()
+                    else:
+                        raise TypeError
+        else:
+            new_bounds = bounds
+        return new_bounds
 
     def get_constraints(self, constraints):
         return constraints
