@@ -1,16 +1,16 @@
 import tensorflow as tf
 import numpy as np
 from numpy.random import random
+from .base_wrapper import concat_, unconcat_, BaseWrapper
 
-
-class TfWrapper:
+class TfWrapper(BaseWrapper):
     def __init__(self, func, precision='float32'):
         self.func = func
 
         if precision == 'float32':
-            self.tf_prec = tf.float32
-        elif precision == 'float32':
-            self.tf_prec = tf.float64
+            self.precision = tf.float32
+        elif precision == 'float64':
+            self.precision = tf.float64
         else:
             raise ValueError
 
@@ -32,7 +32,7 @@ class TfWrapper:
     def get_value_and_grad(self, input_var):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
-            input_var, dtype=self.tf_prec), self.shapes)
+            input_var, dtype=self.precision), self.shapes)
         value, grads = self._get_value_and_grad_tf(input_var_)
 
         return [value.numpy().astype(np.float64), concat_(grads)[0].numpy().astype(np.float64)]
@@ -40,12 +40,25 @@ class TfWrapper:
     def get_hvp(self, input_var, vector):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
-            input_var, dtype=self.tf_prec), self.shapes)
+            input_var, dtype=self.precision), self.shapes)
         vector_ = unconcat_(tf.constant(
-            vector, dtype=self.tf_prec), self.shapes)
+            vector, dtype=self.precision), self.shapes)
 
         res = self._get_hvp_tf(input_var_, vector_)
         return concat_(res)[0].numpy().astype(np.float64)
+
+    def get_hess(self, input_var):
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        input_var_ = tf.constant(input_var, dtype=self.precision)
+        hess = self._get_hess(input_var_).numpy().astype(np.float64)
+
+        return hess
+
+    @tf.function
+    def _get_hess(self, input_var):
+        loss = self._eval_func(unconcat_(input_var, self.shapes))
+        
+        return tf.hessians(loss, input_var)[0]
 
     def _eval_func(self, input_var):
         if isinstance(input_var, dict):
@@ -77,62 +90,3 @@ class TfWrapper:
 
         hvp = outer_tape.gradient(grads, input_var, output_gradients=vector)
         return hvp
-
-
-def concat_(ten_vals):
-    ten = []
-    if isinstance(ten_vals, dict):
-        shapes = {}
-        for k, t in ten_vals.items():
-            if t is not None:
-                shapes[k] = t.shape
-                ten.append(tf.reshape(t, [-1]))
-        ten = tf.concat(ten, 0)
-
-    elif isinstance(ten_vals, list) or isinstance(ten_vals, tuple):
-        shapes = []
-        for t in ten_vals:
-            if t is not None:
-                shapes.append(t.shape)
-                ten.append(tf.reshape(t, [-1]))
-        ten = tf.concat(ten, 0)
-
-    else:
-        shapes = None
-        ten = ten_vals
-
-    return ten, shapes
-
-
-def unconcat_(ten, shapes):
-    current_ind = 0
-    if isinstance(shapes, dict):
-        ten_vals = {}
-        for k, sh in shapes.items():
-            next_ind = current_ind+np.prod(sh, dtype=np.int32)
-
-            if isinstance(ten, np.ndarray):
-                ten_vals[k] = np.reshape(ten[current_ind:next_ind], sh)
-            else:
-                ten_vals[k] = tf.reshape(
-                    tf.gather(ten, tf.range(current_ind, next_ind), 0), sh)
-
-            current_ind = next_ind
-
-    elif isinstance(shapes, list) or isinstance(shapes, tuple):
-        ten_vals = []
-        for sh in shapes:
-            next_ind = current_ind+np.prod(sh, dtype=np.int32)
-
-            if isinstance(ten, np.ndarray):
-                ten_vals.append(np.reshape(ten[current_ind:next_ind], sh))
-            else:
-                ten_vals.append(tf.reshape(
-                    tf.gather(ten, tf.range(current_ind, next_ind), 0), sh))
-
-            current_ind = next_ind
-
-    elif shapes is None:
-        ten_vals = ten
-
-    return ten_vals
