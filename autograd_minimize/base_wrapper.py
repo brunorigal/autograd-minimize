@@ -30,14 +30,7 @@ class BaseWrapper(ABC):
                 assert len(self.shapes)==len(bounds)
                 new_bounds = []
                 for sh, bounds_ in zip(self.shapes, bounds):
-                    if isinstance(bounds_, tuple):
-                        assert len(bounds_)==2
-                        new_bounds+=[bounds_]*np.prod(sh, dtype=np.int32)
-                    elif (isinstance(bounds_, list) or isinstance(bounds_, np.ndarray)):
-                        assert np.prod(sh)==np.prod(bounds_.shape)
-                        new_bounds+=np.concatenate(np.reshape(bounds_, -1)).tolist()
-                    else:
-                        raise TypeError
+                    new_bounds+=format_bounds(bounds_, sh)
 
             elif isinstance(bounds, dict):
                 assert self.input_type == dict 
@@ -45,15 +38,8 @@ class BaseWrapper(ABC):
 
                 new_bounds = []
                 for k in self.shapes.keys():
-                    sh = self.shapes[k]
-                    if isinstance(bounds[k], tuple):
-                        assert len(bounds[k])==2
-                        new_bounds+=[bounds[k]]*np.prod(sh, dtype=np.int32)
-                    elif (isinstance(bounds[k], list) or isinstance(bounds[k], np.ndarray)):
-                        assert np.prod(sh)==np.prod(bounds[k].shape)
-                        new_bounds+=np.concatenate(np.reshape(bounds[k], -1)).tolist()
-                    else:
-                        raise TypeError
+                    new_bounds+=format_bounds(bounds[k], self.shapes[k])
+
         else:
             new_bounds = bounds
         return new_bounds
@@ -170,3 +156,17 @@ def unconcat_(ten, shapes):
         ten_vals = ten
 
     return ten_vals
+
+
+def format_bounds(bounds_, sh):
+    if isinstance(bounds_, tuple):
+        assert len(bounds_)==2
+        return [bounds_]*np.prod(sh, dtype=np.int32)
+    elif isinstance(bounds_, list):
+        assert np.prod(sh)==len(bounds_)
+        return bounds_
+    elif isinstance(bounds_, np.ndarray):
+        assert np.prod(sh)==np.prod(np.array(bounds_).shape)
+        return np.concatenate(np.reshape(bounds_, -1)).tolist()
+    else:
+        raise TypeError
