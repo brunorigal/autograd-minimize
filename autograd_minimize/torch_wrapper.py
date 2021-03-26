@@ -65,8 +65,7 @@ class TorchWrapper(BaseWrapper):
         assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
         input_var_ = torch.tensor(input_var, dtype=self.precision)
 
-        hess = torch.autograd.functional.hessian(self._eval_func, 
-            unconcat_(input_var_, self.shapes),
+        hess = hessian(self._eval_func, unconcat_(input_var_, self.shapes),
             vectorize=False).cpu().detach().numpy().astype(np.float64)
 
         return hess
