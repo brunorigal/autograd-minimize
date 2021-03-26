@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import tensorflow as tf 
 import torch
 import numpy as np
+import scipy.optimize as sopt 
 
 
 class BaseWrapper(ABC):
@@ -23,6 +24,9 @@ class BaseWrapper(ABC):
         if bounds is not None:
             if isinstance(bounds, tuple):
                 assert len(bounds)==2
+                new_bounds = [bounds]*self.var_num
+
+            elif isinstance(bounds, sopt.Bounds):
                 new_bounds = [bounds]*self.var_num
 
             elif isinstance(bounds, list):
@@ -131,11 +135,6 @@ def unconcat_(ten, shapes):
         for k, sh in shapes.items():
             next_ind = current_ind+np.prod(sh, dtype=np.int32)
             ten_vals[k] = reshape(gather(ten, current_ind, next_ind), sh)
-            # if isinstance(ten, np.ndarray):
-            #     ten_vals[k] = np.reshape(ten[current_ind:next_ind], sh)
-            # else:
-            #     ten_vals[k] = tf.reshape(
-            #         tf.gather(ten, tf.range(current_ind, next_ind), 0), sh)
 
             current_ind = next_ind
 
@@ -144,11 +143,6 @@ def unconcat_(ten, shapes):
         for sh in shapes:
             next_ind = current_ind+np.prod(sh, dtype=np.int32)
             ten_vals.append(reshape(gather(ten, current_ind, next_ind), sh))
-            # if isinstance(ten, np.ndarray):
-            #     ten_vals.append(np.reshape(ten[current_ind:next_ind], sh))
-            # else:
-            #     ten_vals.append(tf.reshape(
-            #         tf.gather(ten, tf.range(current_ind, next_ind), 0), sh))
 
             current_ind = next_ind
 
@@ -161,6 +155,8 @@ def unconcat_(ten, shapes):
 def format_bounds(bounds_, sh):
     if isinstance(bounds_, tuple):
         assert len(bounds_)==2
+        return [bounds_]*np.prod(sh, dtype=np.int32)
+    elif isinstance(bounds_, sopt.Bounds):
         return [bounds_]*np.prod(sh, dtype=np.int32)
     elif isinstance(bounds_, list):
         assert np.prod(sh)==len(bounds_)
