@@ -1,6 +1,4 @@
 from abc import ABC, abstractmethod
-import tensorflow as tf
-import torch
 import numpy as np
 import scipy.optimize as sopt
 
@@ -11,14 +9,14 @@ class BaseWrapper(ABC):
         self.input_type = type(input_var)
         assert self.input_type in [
             dict, list, np.ndarray], 'The initial input to your optimized function should be one of dict, list or np.ndarray'
-        input_, self.shapes = concat_(input_var)
+        input_, self.shapes = self._concat(input_var)
         self.var_num = input_.shape[0]
         return input_
 
     def get_output(self, output_var):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
-        output_var_ = unconcat_(output_var, self.shapes)
+        output_var_ = self._unconcat(output_var, self.shapes)
         return output_var_
 
     def get_bounds(self, bounds):
@@ -105,7 +103,7 @@ class BaseWrapper(ABC):
         return loss
 
     def _eval_ctr_func(self, input_var):
-        input_var = unconcat_(input_var, self.shapes)
+        input_var = self._unconcat(input_var, self.shapes)
         if isinstance(input_var, dict):
             ctr_val = self.ctr_func(**input_var)
         elif isinstance(input_var, list) or isinstance(input_var, tuple):
@@ -118,89 +116,69 @@ class BaseWrapper(ABC):
     def get_ctr_jac(self, input_var):
         return
 
+    def _concat(self, ten_vals):
+        ten = []
+        if isinstance(ten_vals, dict):
+            shapes = {}
+            for k, t in ten_vals.items():
+                if t is not None:
+                    shapes[k] = t.shape
+                    ten.append(self._reshape(t, [-1]))
+            ten = self._tconcat(ten, 0)
 
-def reshape(t, sh):
-    if isinstance(t, tf.Tensor):
-        return tf.reshape(t, sh)
-    elif torch.is_tensor(t):
-        return t.view(sh)
-    elif isinstance(t, np.ndarray):
-        return np.reshape(t, sh)
-    else:
-        raise NotImplementedError
+        elif isinstance(ten_vals, list) or isinstance(ten_vals, tuple):
+            shapes = []
+            for t in ten_vals:
+                if t is not None:
+                    shapes.append(t.shape)
+                    ten.append(self._reshape(t, [-1]))
+            ten = self._tconcat(ten, 0)
 
-
-def concat(t_list, dim=0):
-    if isinstance(t_list[0], tf.Tensor):
-        return tf.concat(t_list, dim)
-    elif torch.is_tensor(t_list[0]):
-        return torch.cat(t_list, dim)
-    elif isinstance(t_list[0], np.ndarray):
-        return np.concatenate(t_list, dim)
-    else:
-        raise NotImplementedError
-
-
-def gather(t, i, j):
-    if isinstance(t, np.ndarray) or torch.is_tensor(t):
-        return t[i:j]
-    elif isinstance(t, tf.Tensor):
-        return tf.gather(t, tf.range(i, j), 0)
-    else:
-        raise NotImplementedError
-
-
-def concat_(ten_vals):
-    ten = []
-    if isinstance(ten_vals, dict):
-        shapes = {}
-        for k, t in ten_vals.items():
-            if t is not None:
-                shapes[k] = t.shape
-                ten.append(reshape(t, [-1]))
-        ten = concat(ten, 0)
-
-    elif isinstance(ten_vals, list) or isinstance(ten_vals, tuple):
-        shapes = []
-        for t in ten_vals:
-            if t is not None:
-                shapes.append(t.shape)
-                ten.append(reshape(t, [-1]))
-        ten = concat(ten, 0)
-
-    else:
-        shapes = ten_vals.shape
-        ten = reshape(ten_vals, [-1])
-
-    return ten, shapes
-
-
-def unconcat_(ten, shapes):
-    current_ind = 0
-    if isinstance(shapes, dict):
-        ten_vals = {}
-        for k, sh in shapes.items():
-            next_ind = current_ind+np.prod(sh, dtype=np.int32)
-            ten_vals[k] = reshape(gather(ten, current_ind, next_ind), sh)
-
-            current_ind = next_ind
-
-    elif isinstance(shapes, list) or isinstance(shapes, tuple):
-        if isinstance(shapes[0], int):
-            ten_vals = reshape(ten, shapes)
         else:
-            ten_vals = []
-            for sh in shapes:
+            shapes = ten_vals.shape
+            ten = self._reshape(ten_vals, [-1])
+
+        return ten, shapes
+
+    def _unconcat(self, ten, shapes):
+        current_ind = 0
+        if isinstance(shapes, dict):
+            ten_vals = {}
+            for k, sh in shapes.items():
                 next_ind = current_ind+np.prod(sh, dtype=np.int32)
-                ten_vals.append(
-                    reshape(gather(ten, current_ind, next_ind), sh))
+                ten_vals[k] = self._reshape(
+                    self._gather(ten, current_ind, next_ind), sh)
 
                 current_ind = next_ind
 
-    elif shapes is None:
-        ten_vals = ten
+        elif isinstance(shapes, list) or isinstance(shapes, tuple):
+            if isinstance(shapes[0], int):
+                ten_vals = self._reshape(ten, shapes)
+            else:
+                ten_vals = []
+                for sh in shapes:
+                    next_ind = current_ind+np.prod(sh, dtype=np.int32)
+                    ten_vals.append(
+                        self._reshape(self._gather(ten, current_ind, next_ind), sh))
 
-    return ten_vals
+                    current_ind = next_ind
+
+        elif shapes is None:
+            ten_vals = ten
+
+        return ten_vals
+
+    @abstractmethod
+    def _reshape(self, t, sh):
+        return
+
+    @abstractmethod
+    def _tconcat(self, t_list, dim=0):
+        return
+
+    @abstractmethod
+    def _gather(self, t, i, j):
+        return
 
 
 def format_bounds(bounds_, sh):

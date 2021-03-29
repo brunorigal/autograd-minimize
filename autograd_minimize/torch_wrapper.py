@@ -1,8 +1,6 @@
-import tensorflow as tf
 import numpy as np
-from numpy.random import random
 import torch
-from .base_wrapper import concat_, unconcat_, BaseWrapper
+from .base_wrapper import BaseWrapper
 from torch.autograd.functional import hvp, vhp, hessian
 
 
@@ -23,7 +21,7 @@ class TorchWrapper(BaseWrapper):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
 
-        input_var_ = unconcat_(torch.tensor(
+        input_var_ = self._unconcat(torch.tensor(
             input_var, dtype=self.precision, requires_grad=True), self.shapes)
 
         loss = self._eval_func(input_var_)
@@ -35,15 +33,15 @@ class TorchWrapper(BaseWrapper):
             grads = {k: v for k, v in zip(input_var_.keys(), grads)}
 
         return [loss.cpu().detach().numpy().astype(np.float64),
-                concat_(grads)[0].cpu().detach().numpy().astype(np.float64)]
+                self._concat(grads)[0].cpu().detach().numpy().astype(np.float64)]
 
     def get_hvp(self, input_var, vector):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
 
-        input_var_ = unconcat_(torch.tensor(
+        input_var_ = self._unconcat(torch.tensor(
             input_var, dtype=self.precision), self.shapes)
-        vector_ = unconcat_(torch.tensor(
+        vector_ = self._unconcat(torch.tensor(
             vector, dtype=self.precision), self.shapes)
 
         if isinstance(input_var_, dict):
@@ -53,7 +51,7 @@ class TorchWrapper(BaseWrapper):
 
         loss, vhp_res = self.hvp_func(self.func, input_var_, v=vector_)
 
-        return concat_(vhp_res)[0].cpu().detach().numpy().astype(np.float64)
+        return self._concat(vhp_res)[0].cpu().detach().numpy().astype(np.float64)
 
     def get_hess(self, input_var):
         assert 'shapes' in dir(
@@ -61,7 +59,7 @@ class TorchWrapper(BaseWrapper):
         input_var_ = torch.tensor(input_var, dtype=self.precision)
 
         def func(inp):
-            return self._eval_func(unconcat_(inp, self.shapes))
+            return self._eval_func(self._unconcat(inp, self.shapes))
 
         hess = hessian(func, input_var_, vectorize=False)
 
@@ -71,7 +69,7 @@ class TorchWrapper(BaseWrapper):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
 
-        input_var_ = unconcat_(torch.tensor(
+        input_var_ = self._unconcat(torch.tensor(
             input_var, dtype=self.precision, requires_grad=True), self.shapes)
 
         ctr_val = self._eval_ctr_func(input_var_)
@@ -80,3 +78,25 @@ class TorchWrapper(BaseWrapper):
         grads = torch.autograd.grad(ctr_val, input_var_grad)
 
         return grads.cpu().detach().numpy().astype(np.float64)
+
+    def reshape(self, t, sh):
+        if torch.is_tensor(t):
+            return t.view(sh)
+        elif isinstance(t, np.ndarray):
+            return np.reshape(t, sh)
+        else:
+            raise NotImplementedError
+
+    def concat(self, t_list, dim=0):
+        if torch.is_tensor(t_list[0]):
+            return torch.cat(t_list, dim)
+        elif isinstance(t_list[0], np.ndarray):
+            return np.concatenate(t_list, dim)
+        else:
+            raise NotImplementedError
+
+    def gather(self, t, i, j):
+        if isinstance(t, np.ndarray) or torch.is_tensor(t):
+            return t[i:j]
+        else:
+            raise NotImplementedError

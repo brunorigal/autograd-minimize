@@ -1,5 +1,3 @@
-from .tf_wrapper import TfWrapper
-from .torch_wrapper import TorchWrapper
 import scipy.optimize as sopt
 
 
@@ -79,8 +77,10 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
     """
 
     if backend == 'tf':
+        from .tf_wrapper import TfWrapper
         wrapper = TfWrapper(fun, precision=precision, hvp_type=hvp_type)
     elif backend == 'torch':
+        from .torch_wrapper import TorchWrapper
         wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type)
     else:
         raise NotImplementedError
