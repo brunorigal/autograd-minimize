@@ -126,8 +126,8 @@ def concat_(ten_vals):
         ten = concat(ten, 0)
 
     else:
-        shapes = None
-        ten = ten_vals
+        shapes = ten_vals.shape
+        ten = reshape(ten_vals, [-1])
 
     return ten, shapes
 
@@ -143,12 +143,15 @@ def unconcat_(ten, shapes):
             current_ind = next_ind
 
     elif isinstance(shapes, list) or isinstance(shapes, tuple):
-        ten_vals = []
-        for sh in shapes:
-            next_ind = current_ind+np.prod(sh, dtype=np.int32)
-            ten_vals.append(reshape(gather(ten, current_ind, next_ind), sh))
+        if isinstance(shapes[0], int):
+            ten_vals = reshape(ten, shapes)
+        else:
+            ten_vals = []
+            for sh in shapes:
+                next_ind = current_ind+np.prod(sh, dtype=np.int32)
+                ten_vals.append(reshape(gather(ten, current_ind, next_ind), sh))
 
-            current_ind = next_ind
+                current_ind = next_ind
 
     elif shapes is None:
         ten_vals = ten
