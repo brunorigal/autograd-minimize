@@ -8,7 +8,7 @@ It also accepts functions of more than one variables as input.
 
 ## Installation 
 
-`pip install autograd_minimize`
+`pip install git+https://github.com/brunorigal/autograd_minimize.git`
 
 ## Basic usage
 
@@ -85,7 +85,7 @@ print(res.fun)
 
 You can also set bounds (only for the methods: L-BFGS-B, TNC, SLSQP, Powell, and trust-constr):
 
-If the bounds is a tuple, the same bound is applied to all variables:
+If bounds is a tuple, the same bound is applied to all variables:
 
 ```
 res = minimize(mat_fac, x0, bounds=(None, 0))
