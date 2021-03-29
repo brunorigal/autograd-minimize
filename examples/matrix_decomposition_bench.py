@@ -49,6 +49,7 @@ def test_matrix_decomposition(shape=(5,10), inner_shape=3, backend='torch'):
         results[method] = {'time': toc, 'mse': res.fun}
 
     return results
-
-results = test_matrix_decomposition()
-print(pd.DataFrame(results).T)
+    
+if __name__ == '__main__':
+    results = test_matrix_decomposition()
+    print(pd.DataFrame(results).T)

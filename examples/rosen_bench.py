@@ -46,7 +46,6 @@ def rosen_tst(backend='torch'):
 
     return results
 
-
-results = rosen_tst('tf')
-
-print(pd.DataFrame(results).T)
+if __name__ == '__main__':
+    results = rosen_tst('tf')
+    print(pd.DataFrame(results).T)
