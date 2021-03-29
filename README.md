@@ -112,3 +112,8 @@ res = minimize(mat_fac, x0, bounds={'U': (0, None), 'V': [(0, None)]*inner_shape
 ## Constraints
 
 And you can set constraints (with automatic computation of the jacobian). An example is given in `examples/multiknapsack`, where the (relaxed multiknapsack problem is solved).
+
+## ToDo
+
+* Adds optimization of keras or pytorch models (as shown [here](https://gist.github.com/piyueh/712ec7d4540489aad2dcfb80f9a54993))
+* Adds comparison with LBFGS from pytorch or keras
