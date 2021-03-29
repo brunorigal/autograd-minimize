@@ -19,7 +19,7 @@ import tensorflow as tf
 from autograd_minimize import minimize
 
 def rosen_tf(x):
-return tf.reduce_sum(100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0)
+    return tf.reduce_sum(100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0)
 
 res = minimize(rosen_tf, np.array([0.,0.]))
 print(res.x)
@@ -32,7 +32,8 @@ But you can also use pytorch:
 import torch
 from autograd_minimize import minimize
 
-def rosen_torch(x):return (100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0).sum()
+def rosen_torch(x):
+    return (100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0).sum()
     
 res = minimize(rosen_torch, np.array([0.,0.]), backend='torch')
 print(res.x)
