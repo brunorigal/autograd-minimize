@@ -100,6 +100,9 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
     optim_res.x = wrapper.get_output(optim_res.x)
 
     if 'jac' in optim_res.keys() and len(optim_res.jac)>0:
-        optim_res.jac = wrapper.get_output(optim_res.jac)
+        try:
+            optim_res.jac = wrapper.get_output(optim_res.jac[0])
+        except:
+            pass
 
     return optim_res
