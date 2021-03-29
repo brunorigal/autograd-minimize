@@ -68,7 +68,7 @@ def test_cstr_opt():
     assert_almost_equal(res.x, np.array([1.4, 1.7]), decimal=6)
 
 
-def test_matrix_decomposition(shape=(10,20), inner_shape=3, method='CG'):
+def test_matrix_decomposition(shape=(10,20), inner_shape=3, method=None):
     U = random((shape[0], inner_shape))
     V = random((inner_shape, shape[1]))
     prod = U@V
