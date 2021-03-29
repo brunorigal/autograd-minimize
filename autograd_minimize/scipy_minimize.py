@@ -50,8 +50,8 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
 
     :param bounds: Bounds on the input variables, only available for L-BFGS-B, TNC, SLSQP, Powell, and trust-constr methods.
         It can be: 
-        * a tuple (min, max), None indicates no bounds. 
-        * An instance of the [Bounds](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.Bounds.html#scipy.optimize.Bounds) class
+        * a tuple (min, max), None indicates no bounds, in this case the same bound is applied to all variables. 
+        * An instance of the [Bounds](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.Bounds.html#scipy.optimize.Bounds) class, in this case the same bound is applied to all variables. 
         * A numpy array of bounds (if the optimized function has a single numpy array as input)
         * A list or dict of bounds with the same format as the optimized function signature. 
         , defaults to None
