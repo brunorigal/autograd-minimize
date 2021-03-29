@@ -110,4 +110,4 @@ res = minimize(mat_fac, x0, bounds={'U': (0, None), 'V': [(0, None)]*inner_shape
 
 ## Constraints
 
-And you can set constraints (with automatic computation of the jacobian). An example is given in examples/multiknapsack, where the (relaed multiknapsack problem is solved).
+And you can set constraints (with automatic computation of the jacobian). An example is given in `examples/multiknapsack`, where the (relaxed multiknapsack problem is solved).
