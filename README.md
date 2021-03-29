@@ -107,3 +107,7 @@ bounds which the same shape or len as the variable to specify in more details th
 ```
 res = minimize(mat_fac, x0, bounds={'U': (0, None), 'V': [(0, None)]*inner_shape*shape[1]})
 ```
+
+## Constraints
+
+And you can set constraints (with automatic computation of the jacobian). An example is given in examples/multiknapsack, where the (relaed multiknapsack problem is solved).
