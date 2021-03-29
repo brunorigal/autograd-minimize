@@ -157,7 +157,7 @@ def n_knapsack( n_knapsacks=5,
             'use_autograd':False
         }
     else:
-        constraints=()
+        constraints=None
 
     Winit = np.zeros((n_items, n_knapsacks))
     res = minimize(func, Winit, tol=1e-8, 

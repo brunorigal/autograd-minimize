@@ -88,7 +88,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
     if bounds is not None:
         assert method in [None,  'L-BFGS-B', 'TNC', 'SLSQP', 'Powell', 'trust-constr'], 'bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr'
 
-    if constraints is not ():
+    if constraints is not None:
         assert method in ['COBYLA', 'SLSQP', 'trust-constr'], 'Constraints are only available for COBYLA, SLSQP and trust-constr'
 
     optim_res = sopt.minimize(wrapper.get_value_and_grad,
