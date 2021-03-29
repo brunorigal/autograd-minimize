@@ -1,21 +1,23 @@
 from abc import ABC, abstractmethod
-import tensorflow as tf 
+import tensorflow as tf
 import torch
 import numpy as np
-import scipy.optimize as sopt 
+import scipy.optimize as sopt
 
 
 class BaseWrapper(ABC):
 
     def get_input(self, input_var):
         self.input_type = type(input_var)
-        assert self.input_type in [dict, list, np.ndarray], 'The initial input to your optimized function should be one of dict, list or np.ndarray'
+        assert self.input_type in [
+            dict, list, np.ndarray], 'The initial input to your optimized function should be one of dict, list or np.ndarray'
         input_, self.shapes = concat_(input_var)
         self.var_num = input_.shape[0]
         return input_
 
     def get_output(self, output_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        assert 'shapes' in dir(
+            self), 'You must first call get input to define the tensors shapes.'
         output_var_ = unconcat_(output_var, self.shapes)
         return output_var_
 
@@ -23,7 +25,7 @@ class BaseWrapper(ABC):
 
         if bounds is not None:
             if isinstance(bounds, tuple) and not (isinstance(bounds[0], tuple) or isinstance(bounds[0], sopt.Bounds)):
-                assert len(bounds)==2
+                assert len(bounds) == 2
                 new_bounds = [bounds]*self.var_num
 
             elif isinstance(bounds, sopt.Bounds):
@@ -31,23 +33,24 @@ class BaseWrapper(ABC):
 
             elif type(bounds) in [list, tuple, np.ndarray]:
                 if self.input_type in [list, tuple]:
-                    assert len(self.shapes)==len(bounds)
+                    assert len(self.shapes) == len(bounds)
                     new_bounds = []
                     for sh, bounds_ in zip(self.shapes, bounds):
-                        new_bounds+=format_bounds(bounds_, sh)
+                        new_bounds += format_bounds(bounds_, sh)
                 elif self.input_type in [np.ndarray]:
                     new_bounds = bounds
 
             elif isinstance(bounds, dict):
-                assert self.input_type == dict 
+                assert self.input_type == dict
                 assert set(bounds.keys()).issubset(self.shapes.keys())
 
                 new_bounds = []
                 for k in self.shapes.keys():
                     if k in bounds.keys():
-                        new_bounds+=format_bounds(bounds[k], self.shapes[k])
+                        new_bounds += format_bounds(bounds[k], self.shapes[k])
                     else:
-                        new_bounds+=[(None, None)]**np.prod(self.shapes[k], dtype=np.int32)
+                        new_bounds += [(None, None)
+                                       ]**np.prod(self.shapes[k], dtype=np.int32)
         else:
             new_bounds = bounds
         return new_bounds
@@ -56,28 +59,28 @@ class BaseWrapper(ABC):
         if constraints is not None and not isinstance(constraints, sopt.LinearConstraint):
             assert isinstance(constraints, dict)
             assert 'fun' in constraints.keys()
-            self.ctr_func = constraints['fun'] 
+            self.ctr_func = constraints['fun']
             use_autograd = constraints.get('use_autograd', True)
             if method in ['trust-constr']:
 
                 constraints = sopt.NonlinearConstraint(
                     self._eval_ctr_func,
-                    lb=constraints.get('lb', -np.inf),  
-                    ub=constraints.get('ub', np.inf), 
+                    lb=constraints.get('lb', -np.inf),
+                    ub=constraints.get('ub', np.inf),
                     jac=self.get_ctr_jac if use_autograd else '2-point',
                     keep_feasible=constraints.get('keep_feasible', False),
                 )
             elif method in ['COBYLA', 'SLSQP']:
                 constraints = {
-                        'type': constraints.get('type', 'eq'),
-                        'fun': self._eval_ctr_func,
-                    }
+                    'type': constraints.get('type', 'eq'),
+                    'fun': self._eval_ctr_func,
+                }
                 if use_autograd:
                     constraints['jac'] = self.get_ctr_jac
             else:
                 raise NotImplementedError
         elif constraints is None:
-            constraints=()
+            constraints = ()
         return constraints
 
     @abstractmethod
@@ -115,6 +118,7 @@ class BaseWrapper(ABC):
     def get_ctr_jac(self, input_var):
         return
 
+
 def reshape(t, sh):
     if isinstance(t, tf.Tensor):
         return tf.reshape(t, sh)
@@ -125,6 +129,7 @@ def reshape(t, sh):
     else:
         raise NotImplementedError
 
+
 def concat(t_list, dim=0):
     if isinstance(t_list[0], tf.Tensor):
         return tf.concat(t_list, dim)
@@ -134,6 +139,7 @@ def concat(t_list, dim=0):
         return np.concatenate(t_list, dim)
     else:
         raise NotImplementedError
+
 
 def gather(t, i, j):
     if isinstance(t, np.ndarray) or torch.is_tensor(t):
@@ -186,7 +192,8 @@ def unconcat_(ten, shapes):
             ten_vals = []
             for sh in shapes:
                 next_ind = current_ind+np.prod(sh, dtype=np.int32)
-                ten_vals.append(reshape(gather(ten, current_ind, next_ind), sh))
+                ten_vals.append(
+                    reshape(gather(ten, current_ind, next_ind), sh))
 
                 current_ind = next_ind
 
@@ -198,15 +205,15 @@ def unconcat_(ten, shapes):
 
 def format_bounds(bounds_, sh):
     if isinstance(bounds_, tuple):
-        assert len(bounds_)==2
+        assert len(bounds_) == 2
         return [bounds_]*np.prod(sh, dtype=np.int32)
     elif isinstance(bounds_, sopt.Bounds):
         return [bounds_]*np.prod(sh, dtype=np.int32)
     elif isinstance(bounds_, list):
-        assert np.prod(sh)==len(bounds_)
+        assert np.prod(sh) == len(bounds_)
         return bounds_
     elif isinstance(bounds_, np.ndarray):
-        assert np.prod(sh)==np.prod(np.array(bounds_).shape)
+        assert np.prod(sh) == np.prod(np.array(bounds_).shape)
         return np.concatenate(np.reshape(bounds_, -1)).tolist()
     else:
         raise TypeError

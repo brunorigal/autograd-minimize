@@ -16,19 +16,20 @@ class TfWrapper(BaseWrapper):
         else:
             raise ValueError
 
-        if hvp_type=='forward_over_back':
-            self.hvp_func =_forward_over_back_hvp
-        elif hvp_type=='back_over_forward':
-            self.hvp_func =_back_over_forward_hvp
-        elif hvp_type=='tf_gradients_forward_over_back':
-            self.hvp_func =_tf_gradients_forward_over_back_hvp
-        elif hvp_type=='back_over_back' or hvp_type is None:
-            self.hvp_func =_back_over_back_hvp
+        if hvp_type == 'forward_over_back':
+            self.hvp_func = _forward_over_back_hvp
+        elif hvp_type == 'back_over_forward':
+            self.hvp_func = _back_over_forward_hvp
+        elif hvp_type == 'tf_gradients_forward_over_back':
+            self.hvp_func = _tf_gradients_forward_over_back_hvp
+        elif hvp_type == 'back_over_back' or hvp_type is None:
+            self.hvp_func = _back_over_back_hvp
         else:
             raise NotImplementedError
-            
+
     def get_value_and_grad(self, input_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        assert 'shapes' in dir(
+            self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
             input_var, dtype=self.precision), self.shapes)
         value, grads = self._get_value_and_grad_tf(input_var_)
@@ -36,7 +37,8 @@ class TfWrapper(BaseWrapper):
         return [value.numpy().astype(np.float64), concat_(grads)[0].numpy().astype(np.float64)]
 
     def get_hvp(self, input_var, vector):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        assert 'shapes' in dir(
+            self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
             input_var, dtype=self.precision), self.shapes)
         vector_ = unconcat_(tf.constant(
@@ -46,7 +48,8 @@ class TfWrapper(BaseWrapper):
         return concat_(res)[0].numpy().astype(np.float64)
 
     def get_hess(self, input_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        assert 'shapes' in dir(
+            self), 'You must first call get input to define the tensors shapes.'
         input_var_ = tf.constant(input_var, dtype=self.precision)
         hess = self._get_hess(input_var_).numpy().astype(np.float64)
 
@@ -55,7 +58,7 @@ class TfWrapper(BaseWrapper):
     @tf.function
     def _get_hess(self, input_var):
         loss = self._eval_func(unconcat_(input_var, self.shapes))
-        
+
         return tf.hessians(loss, input_var)[0]
 
     @tf.function
@@ -72,7 +75,8 @@ class TfWrapper(BaseWrapper):
         return self.hvp_func(self._eval_func, input_var, vector)
 
     def get_ctr_jac(self, input_var):
-        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        assert 'shapes' in dir(
+            self), 'You must first call get input to define the tensors shapes.'
         input_var_ = unconcat_(tf.constant(
             input_var, dtype=self.precision), self.shapes)
 
@@ -84,11 +88,11 @@ class TfWrapper(BaseWrapper):
     def _get_ctr_jac(self, input_var):
         with tf.GradientTape() as tape:
             tape.watch(input_var)
-            ctr_val = self._eval_ctr_func(input_var)   
+            ctr_val = self._eval_ctr_func(input_var)
         return tape.jacobian(ctr_val, input_var)
-        
 
-### All hvp functions are copied from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/eager/benchmarks/resnet50/hvp_test.py
+
+# All hvp functions are copied from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/eager/benchmarks/resnet50/hvp_test.py
 def _forward_over_back_hvp(func, input_var, vector):
     with forwardprop.ForwardAccumulator(input_var, vector) as acc:
         with tf.GradientTape() as grad_tape:
@@ -103,7 +107,7 @@ def _back_over_forward_hvp(func, input_var, vector):
     with tf.GradientTape() as grad_tape:
         grad_tape.watch(input_var)
         with forwardprop.ForwardAccumulator(
-            input_var, vector) as acc:
+                input_var, vector) as acc:
             loss = func(input_var)
     return grad_tape.gradient(acc.jvp(loss), input_var)
 
@@ -128,4 +132,4 @@ def _back_over_back_hvp(func, input_var, vector):
             loss = func(input_var)
         grads = inner_tape.gradient(loss, input_var)
     return outer_tape.gradient(
-      grads, input_var, output_gradients=vector)
+        grads, input_var, output_gradients=vector)
