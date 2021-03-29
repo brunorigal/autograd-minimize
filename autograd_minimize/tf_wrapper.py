@@ -58,15 +58,6 @@ class TfWrapper(BaseWrapper):
         
         return tf.hessians(loss, input_var)[0]
 
-    def _eval_func(self, input_var):
-        if isinstance(input_var, dict):
-            loss = self.func(**input_var)
-        elif isinstance(input_var, list) or isinstance(input_var, tuple):
-            loss = self.func(*input_var)
-        else:
-            loss = self.func(input_var)
-        return loss
-
     @tf.function
     def _get_value_and_grad_tf(self, input_var):
         with tf.GradientTape() as tape:
@@ -80,6 +71,22 @@ class TfWrapper(BaseWrapper):
     def _get_hvp_tf(self, input_var, vector):
         return self.hvp_func(self._eval_func, input_var, vector)
 
+    def get_ctr_jac(self, input_var):
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+        input_var_ = unconcat_(tf.constant(
+            input_var, dtype=self.precision), self.shapes)
+
+        jac = self._get_ctr_jac(input_var_)
+
+        return jac.numpy().reshape((-1, self.var_num)).astype(np.float64)
+
+    @tf.function
+    def _get_ctr_jac(self, input_var):
+        with tf.GradientTape() as tape:
+            tape.watch(input_var)
+            ctr_val = self._eval_ctr_func(input_var)   
+        return tape.jacobian(ctr_val, input_var)
+        
 
 ### All hvp functions are copied from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/eager/benchmarks/resnet50/hvp_test.py
 def _forward_over_back_hvp(func, input_var, vector):

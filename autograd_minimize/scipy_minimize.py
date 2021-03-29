@@ -94,7 +94,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
                               hess=wrapper.get_hess if method in [
                                   'dogleg', 'trust-exact'] else None,
                               bounds=wrapper.get_bounds(bounds),
-                              constraints=wrapper.get_constraints(constraints),
+                              constraints=wrapper.get_constraints(constraints, method),
                               tol=tol, callback=callback, options=options)
 
     optim_res.x = wrapper.get_output(optim_res.x)

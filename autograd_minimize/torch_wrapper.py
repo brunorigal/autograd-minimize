@@ -62,3 +62,18 @@ class TorchWrapper(BaseWrapper):
         hess = hessian(func, input_var_,vectorize=False)
 
         return hess.cpu().detach().numpy().astype(np.float64)
+
+    def get_ctr_jac(self, input_var):
+        assert 'shapes' in dir(self), 'You must first call get input to define the tensors shapes.'
+
+        input_var_ = unconcat_(torch.tensor(
+            input_var, dtype=self.precision, requires_grad=True), self.shapes)
+        
+        ctr_val = self._eval_ctr_func(input_var_)
+        input_var_grad = input_var_.values() if isinstance(input_var_, dict) else input_var_
+        grads = torch.autograd.grad(ctr_val, input_var_grad)
+
+        return grads.cpu().detach().numpy().astype(np.float64)
+
+
+        

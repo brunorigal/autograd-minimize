@@ -52,7 +52,30 @@ class BaseWrapper(ABC):
             new_bounds = bounds
         return new_bounds
 
-    def get_constraints(self, constraints):
+    def get_constraints(self, constraints, method):
+        if constraints is not () and not isinstance(constraints, sopt.LinearConstraint):
+            assert isinstance(constraints, dict)
+            assert 'fun' in constraints.keys()
+            self.ctr_func = constraints['fun'] 
+            use_autograd = constraints.get('use_autograd', True)
+            if method in ['trust-constr']:
+
+                constraints = sopt.NonlinearConstraint(
+                    self._eval_ctr_func,
+                    lb=constraints.get('lb', -np.inf),  
+                    ub=constraints.get('ub', np.inf), 
+                    jac=self.get_ctr_jac if use_autograd else '2-point',
+                    keep_feasible=constraints.get('keep_feasible', False),
+                )
+            elif method in ['COBYLA', 'SLSQP']:
+                constraints = {
+                        'type': constraints.get('type', 'eq'),
+                        'fun': self._eval_ctr_func,
+                    }
+                if use_autograd:
+                    constraints['jac'] = self.get_ctr_jac
+            else:
+                raise NotImplementedError
         return constraints
 
     @abstractmethod
@@ -76,7 +99,19 @@ class BaseWrapper(ABC):
             loss = self.func(input_var)
         return loss
 
+    def _eval_ctr_func(self, input_var):
+        input_var = unconcat_(input_var, self.shapes)
+        if isinstance(input_var, dict):
+            ctr_val = self.ctr_func(**input_var)
+        elif isinstance(input_var, list) or isinstance(input_var, tuple):
+            ctr_val = self.ctr_func(*input_var)
+        else:
+            ctr_val = self.ctr_func(input_var)
+        return ctr_val
 
+    @abstractmethod
+    def get_ctr_jac(self, input_var):
+        return
 
 def reshape(t, sh):
     if isinstance(t, tf.Tensor):
