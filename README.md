@@ -1,6 +1,6 @@
-# autograd_minimize
+# autograd-minimize
 
-Wrapper around the minimize routine of scipy which uses the autograd capacities of 
+autograd-minimize is a wrapper around the minimize routine of scipy which uses the autograd capacities of 
 tensorflow or pytorch to compute automatically the gradients, 
 hessian vector products and hessians.
 
@@ -60,7 +60,7 @@ print(np.mean(res.x-1))
 >>> -1.6946999359390702e-12
 ```
 
-Let's now try to do matrix factorization. In this case it is much easier to deal with a function with two inputs, where the input should be a dict or a list with a similar singature as the function: 
+Let's now try to do matrix factorization. In this case it is much easier to deal with a function with two inputs, where the input should be a dict or a list with a similar signature as the function: 
 
 ```
 shape = (10, 15)
