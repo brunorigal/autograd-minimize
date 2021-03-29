@@ -22,28 +22,32 @@ class BaseWrapper(ABC):
     def get_bounds(self, bounds):
 
         if bounds is not None:
-            if isinstance(bounds, tuple):
+            if isinstance(bounds, tuple) and not (isinstance(bounds[0], tuple) or isinstance(bounds[0], sopt.Bounds)):
                 assert len(bounds)==2
                 new_bounds = [bounds]*self.var_num
 
             elif isinstance(bounds, sopt.Bounds):
                 new_bounds = [bounds]*self.var_num
 
-            elif isinstance(bounds, list):
-                assert self.input_type == list 
-                assert len(self.shapes)==len(bounds)
-                new_bounds = []
-                for sh, bounds_ in zip(self.shapes, bounds):
-                    new_bounds+=format_bounds(bounds_, sh)
+            elif type(bounds) in [list, tuple, np.ndarray]:
+                if self.input_type in [list, tuple]:
+                    assert len(self.shapes)==len(bounds)
+                    new_bounds = []
+                    for sh, bounds_ in zip(self.shapes, bounds):
+                        new_bounds+=format_bounds(bounds_, sh)
+                elif self.input_type in [np.ndarray]:
+                    new_bounds = bounds
 
             elif isinstance(bounds, dict):
                 assert self.input_type == dict 
-                assert set(self.shapes.keys())==set(bounds.keys())
+                assert set(bounds.keys()).issubset(self.shapes.keys())
 
                 new_bounds = []
                 for k in self.shapes.keys():
-                    new_bounds+=format_bounds(bounds[k], self.shapes[k])
-
+                    if k in bounds.keys():
+                        new_bounds+=format_bounds(bounds[k], self.shapes[k])
+                    else:
+                        new_bounds+=[(None, None)]**np.prod(self.shapes[k], dtype=np.int32)
         else:
             new_bounds = bounds
         return new_bounds
