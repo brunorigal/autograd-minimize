@@ -53,7 +53,7 @@ class BaseWrapper(ABC):
         return new_bounds
 
     def get_constraints(self, constraints, method):
-        if constraints is not () and not isinstance(constraints, sopt.LinearConstraint):
+        if constraints is not None and not isinstance(constraints, sopt.LinearConstraint):
             assert isinstance(constraints, dict)
             assert 'fun' in constraints.keys()
             self.ctr_func = constraints['fun'] 
@@ -76,6 +76,8 @@ class BaseWrapper(ABC):
                     constraints['jac'] = self.get_ctr_jac
             else:
                 raise NotImplementedError
+        elif constraints is None:
+            constraints=()
         return constraints
 
     @abstractmethod

@@ -5,7 +5,7 @@ import scipy.optimize as sopt
 
 def minimize(fun, x0, backend='tf', precision='float32', method=None, 
     hvp_type=None,
-    bounds=None, constraints=(), tol=None, callback=None, options=None):
+    bounds=None, constraints=None, tol=None, callback=None, options=None):
     """
     wrapper around the [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)
     function of scipy which includes an automatic computation of gradients, 
@@ -57,8 +57,13 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
         , defaults to None
     :type bounds: tuple, list, dict or np.ndarray, optional
 
-    :param constraints: Currently similar to the definition given in , defaults to ()
-    :type constraints: tuple, optional
+    :param constraints: It has to be a dict with the following keys:
+        * fun: a callable computing the constraint function
+        * lb and ub: the lower and upper bounds, if equal, the constraint is an inequality, use np.inf if there is no upper bound. Only used if method is trust-constr.
+        * type: 'eq' or 'ineq' only used if method is one of COBYLA, SLSQP.
+        * keep_feasible: see [here](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.NonlinearConstraint.html#scipy.optimize.NonlinearConstraint)
+        , defaults to None
+    :type constraints: dict, optional
 
     :param tol: Tolerance for termination, defaults to None
     :type tol: float, optional
