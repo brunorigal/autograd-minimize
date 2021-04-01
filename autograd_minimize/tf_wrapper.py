@@ -110,6 +110,8 @@ class TfWrapper(BaseWrapper):
     def _gather(self, t, i, j):
         if isinstance(t, tf.Tensor):
             return tf.gather(t, tf.range(i, j), 0)
+        elif isinstance(t, np.ndarray):
+            return t[i:j]
         else:
             raise NotImplementedError
 
