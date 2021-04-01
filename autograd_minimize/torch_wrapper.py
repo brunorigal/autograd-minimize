@@ -79,7 +79,7 @@ class TorchWrapper(BaseWrapper):
 
         return grads.cpu().detach().numpy().astype(np.float64)
 
-    def reshape(self, t, sh):
+    def _reshape(self, t, sh):
         if torch.is_tensor(t):
             return t.view(sh)
         elif isinstance(t, np.ndarray):
@@ -87,7 +87,7 @@ class TorchWrapper(BaseWrapper):
         else:
             raise NotImplementedError
 
-    def concat(self, t_list, dim=0):
+    def _tconcat(self, t_list, dim=0):
         if torch.is_tensor(t_list[0]):
             return torch.cat(t_list, dim)
         elif isinstance(t_list[0], np.ndarray):
@@ -95,8 +95,9 @@ class TorchWrapper(BaseWrapper):
         else:
             raise NotImplementedError
 
-    def gather(self, t, i, j):
+    def _gather(self, t, i, j):
         if isinstance(t, np.ndarray) or torch.is_tensor(t):
             return t[i:j]
         else:
+            import pdb;pdb.set_trace()
             raise NotImplementedError
