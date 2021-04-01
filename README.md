@@ -8,7 +8,7 @@ It also accepts functions of more than one variables as input.
 
 ## Installation 
 
-`pip install git+https://github.com/brunorigal/autograd_minimize.git`
+`pip install autograd-minimize`
 
 ## Basic usage
 
