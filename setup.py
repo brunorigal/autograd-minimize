@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='autograd_minimize',  
-    version='0.1.0',
+    version='0.1.1',
     author="Bruno Rigal",
     description="A wrapper of scipy minimize with automatic gradient and hessian computation.",
     long_description=long_description,
