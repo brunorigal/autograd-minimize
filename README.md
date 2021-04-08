@@ -144,5 +144,4 @@ And you can set constraints (with automatic computation of the jacobian). An exa
 
 ## ToDo
 
-* Adds optimization of keras or pytorch models (as shown [here](https://gist.github.com/piyueh/712ec7d4540489aad2dcfb80f9a54993))
 * Adds comparison with LBFGS from pytorch or keras
