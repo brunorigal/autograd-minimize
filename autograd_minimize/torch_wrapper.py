@@ -2,7 +2,8 @@ import numpy as np
 import torch
 from .base_wrapper import BaseWrapper
 from torch.autograd.functional import hvp, vhp, hessian
-
+from typing import List, Tuple, Dict, Union, Callable
+from torch import nn, Tensor
 
 class TorchWrapper(BaseWrapper):
     def __init__(self, func, precision='float32', hvp_type='vhp'):
@@ -99,5 +100,77 @@ class TorchWrapper(BaseWrapper):
         if isinstance(t, np.ndarray) or torch.is_tensor(t):
             return t[i:j]
         else:
-            import pdb;pdb.set_trace()
             raise NotImplementedError
+
+
+def torch_function_factory(model, loss, train_x, train_y, precision='float32'):
+    params, names = extract_weights(model)
+    prec_ = torch.float32 if precision=='float32' else torch.float64
+    train_x = torch.tensor(train_x, requires_grad=False, dtype=prec_)
+    train_y = torch.tensor(train_y, requires_grad=False, dtype=prec_)
+
+    def func(**new_params):
+        load_weights(model, new_params)
+        out = model(train_x)
+        return loss(out, train_y)
+
+    params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
+    return func, params
+
+
+#### Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py
+
+# Utilities to make nn.Module "functional"
+# In particular the goal is to be able to provide a function that takes as input
+# the parameters and evaluate the nn.Module using fixed inputs.
+def _del_nested_attr(obj: nn.Module, names: List[str]) -> None:
+    """
+    Deletes the attribute specified by the given list of names.
+    For example, to delete the attribute obj.conv.weight,
+    use _del_nested_attr(obj, ['conv', 'weight'])
+    """
+    if len(names) == 1:
+        delattr(obj, names[0])
+    else:
+        _del_nested_attr(getattr(obj, names[0]), names[1:])
+
+def _set_nested_attr(obj: nn.Module, names: List[str], value: Tensor) -> None:
+    """
+    Set the attribute specified by the given list of names to value.
+    For example, to set the attribute obj.conv.weight,
+    use _del_nested_attr(obj, ['conv', 'weight'], value)
+    """
+    if len(names) == 1:
+        setattr(obj, names[0], value)
+    else:
+        _set_nested_attr(getattr(obj, names[0]), names[1:], value)
+
+def extract_weights(mod: nn.Module) -> Tuple[Tuple[Tensor, ...], List[str]]:
+    """
+    This function removes all the Parameters from the model and
+    return them as a tuple as well as their original attribute names.
+    The weights must be re-loaded with `load_weights` before the model
+    can be used again.
+    Note that this function modifies the model in place and after this
+    call, mod.parameters() will be empty.
+    """
+    orig_params = tuple(mod.parameters())
+    # Remove all the parameters in the model
+    names = []
+    for name, p in list(mod.named_parameters()):
+        _del_nested_attr(mod, name.split("."))
+        names.append(name)
+
+    # Make params regular Tensors instead of nn.Parameter
+    params = tuple(p.detach().requires_grad_() for p in orig_params)
+    return params, names
+
+
+def load_weights(mod: nn.Module, params: Dict[str, Tensor]) -> None:
+    """
+    Reload a set of weights so that `mod` can be used again to perform a forward pass.
+    Note that the `params` are regular Tensors (that can have history) and so are left
+    as Tensors. This means that mod.parameters() will still be empty after this call.
+    """
+    for name, p in params.items():
+        _set_nested_attr(mod, name.split("."), p)
