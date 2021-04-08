@@ -180,8 +180,8 @@ def tf_function_factory(model, loss, train_x, train_y):
     :type train_x: np.ndarray
     :param train_y: dataset used as   ground truth input of the loss
     :type train_y: np.ndarray
-    :return: function of the parameters
-    :rtype: function
+    :return: (function of the parameters, list of parameters)
+    :rtype: tuple
     """    
 
     # now create a function that will be returned by this factory

@@ -109,7 +109,20 @@ class TorchWrapper(BaseWrapper):
 
 
 def torch_function_factory(model, loss, train_x, train_y, precision='float32'):
-    
+    """
+    A factory to create a function of the torch parameter model.
+
+    :param model: torch model
+    :type model: torch.nn.Modle]
+    :param loss: a function with signature loss_value = loss(pred_y, true_y).
+    :type loss: function
+    :param train_x: dataset used as input of the model
+    :type train_x: np.ndarray
+    :param train_y: dataset used as   ground truth input of the loss
+    :type train_y: np.ndarray
+    :return: (function of the parameters, list of parameters)
+    :rtype: tuple
+    """    
     # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
     params, names = extract_weights(model)
     
