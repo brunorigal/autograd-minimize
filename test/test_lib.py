@@ -249,7 +249,6 @@ def test_keras_model_regression():
 
     assert_almost_equal(res.x[-1], -1, decimal=5)
 
-test_keras_model_regression()
 
 def test_torch_model_regression():
     #### Prepares data
