@@ -11,17 +11,15 @@ y = X[:,:1]*2+X[:,1:]*0.4-1
 
 #### Creates model
 model = keras.Sequential([keras.Input(shape=2),
-                          layers.Dense(1)])
+                          keras.layers.Dense(1)])
 
 # Transforms model into a function of its parameter
-func = tf_function_factory(model, tf.keras.losses.MSE, X, y)
+func, params = tf_function_factory(model, tf.keras.losses.MSE, X, y)
 
 # Minimization
-res = minimize(func, [var.numpy() for var in model.trainable_variables], method='L-BFGS-B')
-
-# Assigns minimized params
-for i, param in enumerate(res.x):
-    model.trainable_variables[i].assign(param)
+res = minimize(func, params, method='L-BFGS-B')
 
 print('Fitted parameters:')
 print([var.numpy() for var in model.trainable_variables])
+
+print(f'mae: {tf.reduce_mean(tf.abs(model(X)-y))}')

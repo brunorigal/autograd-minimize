@@ -185,10 +185,11 @@ def tf_function_factory(model, loss, train_x, train_y):
     """    
 
     # now create a function that will be returned by this factory
-    def func(*params):
+    name2pos = {var.name: i for i, var in enumerate(model.trainable_variables)}
+    def func(**params):
         # update the parameters in the model
-        for i, param in enumerate(params):
-            model.trainable_variables[i].assign(param)
+        for name, param in params.items():
+            model.trainable_variables[name2pos[name]].assign(param)
         # calculate the loss
         loss_value = loss(model(train_x, training=True), train_y)
 
@@ -196,4 +197,6 @@ def tf_function_factory(model, loss, train_x, train_y):
 
     func.trainable_variables = model.trainable_variables
     func.is_keras_functional_model = True
-    return func
+
+    params = {var.name: var.numpy() for var in model.trainable_variables}
+    return func, params
