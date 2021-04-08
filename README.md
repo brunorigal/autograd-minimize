@@ -131,11 +131,12 @@ model = keras.Sequential([keras.Input(shape=2),
                           layers.Dense(1)])
 
 # Transforms model into a function of its parameter
-func = tf_function_factory(model, tf.keras.losses.MSE, X, y)
+func, params = tf_function_factory(model, tf.keras.losses.MSE, X, y)
 
 # Minimization
-res = minimize(func, [var.numpy() for var in model.trainable_variables], method='L-BFGS-B')
+res = minimize(func, params, method='L-BFGS-B')
 ```
+Note that you can do the same on torch models by replacing `autograd_minimize.tf_wrapper.tf_function_factory` by `autograd_minimize.torch_wrapper.torch_function_factory`.
 
 ## Constraints
 
