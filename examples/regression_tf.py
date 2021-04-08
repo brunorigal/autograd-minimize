@@ -17,7 +17,7 @@ model = keras.Sequential([keras.Input(shape=2),
 func, params = tf_function_factory(model, tf.keras.losses.MSE, X, y)
 
 # Minimization
-res = minimize(func, params, method='L-BFGS-B')
+res = minimize(func, params, method='trust-constr')
 
 print('Fitted parameters:')
 print([var.numpy() for var in model.trainable_variables])

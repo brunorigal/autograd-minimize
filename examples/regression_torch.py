@@ -15,7 +15,7 @@ model = nn.Sequential(nn.Linear(2, 1))
 func, params = torch_function_factory(model, nn.MSELoss(), X, y)
 
 # Minimization
-res = minimize(func, params, method='L-BFGS-B', backend='torch')
+res = minimize(func, params, method='trust-constr', backend='torch')
 
 print('Fitted parameters:')
 print(res.x)
