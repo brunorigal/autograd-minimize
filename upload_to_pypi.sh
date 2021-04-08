@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 pytest -v test/
-python setup.py sdist bdist_wheel
 rm -r dist
+python setup.py sdist bdist_wheel
 twine check dist/* 
 
 read -p "Are you sure [y]? " -n 1 -r
