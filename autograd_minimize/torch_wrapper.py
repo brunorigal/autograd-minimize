@@ -50,6 +50,11 @@ class TorchWrapper(BaseWrapper):
         if isinstance(vector_, dict):
             vector_ = tuple(vector_.values())
 
+        if isinstance(input_var_, list):
+            input_var_ = tuple(input_var_)
+        if isinstance(vector_, list):
+            vector_ = tuple(vector_)
+
         loss, vhp_res = self.hvp_func(self.func, input_var_, v=vector_)
 
         return self._concat(vhp_res)[0].cpu().detach().numpy().astype(np.float64)
@@ -104,18 +109,20 @@ class TorchWrapper(BaseWrapper):
 
 
 def torch_function_factory(model, loss, train_x, train_y, precision='float32'):
+    
+    # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
     params, names = extract_weights(model)
-    prec_ = torch.float32 if precision=='float32' else torch.float64
-    train_x = torch.tensor(train_x, requires_grad=False, dtype=prec_)
-    train_y = torch.tensor(train_y, requires_grad=False, dtype=prec_)
+    
+    prec_ = torch.float32 if precision == 'float32' else torch.float64
+    train_x = torch.tensor(train_x, dtype=prec_)
+    train_y = torch.tensor(train_y, dtype=prec_)
 
-    def func(**new_params):
-        load_weights(model, new_params)
+    def func(*new_params):
+        load_weights(model, {k: v for  k, v in zip(names, new_params)})
         out = model(train_x)
         return loss(out, train_y)
 
-    params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
-    return func, params
+    return func, [p.cpu().detach().numpy() for p in params]
 
 
 #### Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py

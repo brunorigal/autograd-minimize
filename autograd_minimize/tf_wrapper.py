@@ -162,8 +162,8 @@ def _back_over_back_hvp(func, input_var, watch_var, vector):
             inner_tape.watch(watch_var)
             loss = func(input_var)
         grads = inner_tape.gradient(loss, watch_var)
-    return outer_tape.gradient(
-        grads, watch_var, output_gradients=vector)
+
+    return outer_tape.gradient(grads, watch_var, output_gradients=vector)
 
 
 def tf_function_factory(model, loss, train_x, train_y):
@@ -185,11 +185,14 @@ def tf_function_factory(model, loss, train_x, train_y):
     """    
 
     # now create a function that will be returned by this factory
-    name2pos = {var.name: i for i, var in enumerate(model.trainable_variables)}
-    def func(**params):
+    def func(*params):
+        name2pos = {var.name: i for i, var in enumerate(model.trainable_variables)}
         # update the parameters in the model
-        for name, param in params.items():
-            model.trainable_variables[name2pos[name]].assign(param)
+        # for name, param in params.items():
+        #     model.trainable_variables[name2pos[name]].assign(param)
+        for i, param in enumerate(params):
+            model.trainable_variables[i].assign(param)
+
         # calculate the loss
         loss_value = loss(model(train_x, training=True), train_y)
 
@@ -198,5 +201,7 @@ def tf_function_factory(model, loss, train_x, train_y):
     func.trainable_variables = model.trainable_variables
     func.is_keras_functional_model = True
 
-    params = {var.name: var.numpy() for var in model.trainable_variables}
+    params = [var.numpy() for var in model.trainable_variables]
+    # params = {var.name: var.numpy() for var in model.trainable_variables}
+
     return func, params
