@@ -2,6 +2,7 @@
 
 pytest -v test/
 python setup.py sdist bdist_wheel
+rm -r dist
 twine check dist/* 
 
 read -p "Are you sure [y]? " -n 1 -r
