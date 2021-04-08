@@ -8,6 +8,10 @@ from tensorflow.python.eager import forwardprop
 class TfWrapper(BaseWrapper):
     def __init__(self, func, precision='float32', hvp_type='back_over_back_hvp'):
         self.func = func
+        if 'is_keras_functional_model' not in dir(func):
+            self.keras_model = False
+        else:
+            self.keras_model = func.is_keras_functional_model
 
         if precision == 'float32':
             self.precision = tf.float32
@@ -32,6 +36,7 @@ class TfWrapper(BaseWrapper):
             self), 'You must first call get input to define the tensors shapes.'
         input_var_ = self._unconcat(tf.constant(
             input_var, dtype=self.precision), self.shapes)
+        
         value, grads = self._get_value_and_grad_tf(input_var_)
 
         return [value.numpy().astype(np.float64), self._concat(grads)[0].numpy().astype(np.float64)]
@@ -63,16 +68,18 @@ class TfWrapper(BaseWrapper):
 
     @tf.function
     def _get_value_and_grad_tf(self, input_var):
+        watch_var = self.func.trainable_variables if self.keras_model else input_var
         with tf.GradientTape() as tape:
-            tape.watch(input_var)
+            tape.watch(watch_var)
             loss = self._eval_func(input_var)
 
-        grad = tape.gradient(loss, input_var)
+        grad = tape.gradient(loss, watch_var)
         return loss, grad
 
     @tf.function
     def _get_hvp_tf(self, input_var, vector):
-        return self.hvp_func(self._eval_func, input_var, vector)
+        watch_var = self.func.trainable_variables if self.keras_model else input_var
+        return self.hvp_func(self._eval_func, input_var, watch_var, vector)
 
     def get_ctr_jac(self, input_var):
         assert 'shapes' in dir(
@@ -117,26 +124,26 @@ class TfWrapper(BaseWrapper):
 
 
 # All hvp functions are copied from https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/eager/benchmarks/resnet50/hvp_test.py
-def _forward_over_back_hvp(func, input_var, vector):
-    with forwardprop.ForwardAccumulator(input_var, vector) as acc:
+def _forward_over_back_hvp(func, input_var, watch_var, vector):
+    with forwardprop.ForwardAccumulator(watch_var, vector) as acc:
         with tf.GradientTape() as grad_tape:
-            grad_tape.watch(input_var)
+            grad_tape.watch(watch_var)
             loss = func(input_var)
-        grads = grad_tape.gradient(loss, input_var)
+        grads = grad_tape.gradient(loss, watch_var)
 
     return acc.jvp(grads)
 
 
-def _back_over_forward_hvp(func, input_var, vector):
+def _back_over_forward_hvp(func, input_var, watch_var, vector):
     with tf.GradientTape() as grad_tape:
-        grad_tape.watch(input_var)
+        grad_tape.watch(watch_var)
         with forwardprop.ForwardAccumulator(
-                input_var, vector) as acc:
+                watch_var, vector) as acc:
             loss = func(input_var)
-    return grad_tape.gradient(acc.jvp(loss), input_var)
+    return grad_tape.gradient(acc.jvp(loss), watch_var)
 
 
-def _tf_gradients_forward_over_back_hvp(func, input_var, vector):
+def _tf_gradients_forward_over_back_hvp(func, input_var, watch_var, vector):
     with tf.GradientTape() as grad_tape:
         grad_tape.watch(input_var)
         loss = func(input_var)
@@ -148,12 +155,45 @@ def _tf_gradients_forward_over_back_hvp(func, input_var, vector):
     return tf.gradients(transposing, helpers, vector)
 
 
-def _back_over_back_hvp(func, input_var, vector):
+def _back_over_back_hvp(func, input_var, watch_var, vector):
     with tf.GradientTape() as outer_tape:
-        outer_tape.watch(input_var)
+        outer_tape.watch(watch_var)
         with tf.GradientTape() as inner_tape:
-            inner_tape.watch(input_var)
+            inner_tape.watch(watch_var)
             loss = func(input_var)
-        grads = inner_tape.gradient(loss, input_var)
+        grads = inner_tape.gradient(loss, watch_var)
     return outer_tape.gradient(
-        grads, input_var, output_gradients=vector)
+        grads, watch_var, output_gradients=vector)
+
+
+def tf_function_factory(model, loss, train_x, train_y):
+    """
+    A factory to create a function of the keras parameter model.
+
+    The code is adapted from : https://gist.github.com/piyueh/712ec7d4540489aad2dcfb80f9a54993
+
+    :param model: keras model
+    :type model: tf.keras.Model]
+    :param loss: a function with signature loss_value = loss(pred_y, true_y).
+    :type loss: function
+    :param train_x: dataset used as input of the model
+    :type train_x: np.ndarray
+    :param train_y: dataset used as   ground truth input of the loss
+    :type train_y: np.ndarray
+    :return: function of the parameters
+    :rtype: function
+    """    
+
+    # now create a function that will be returned by this factory
+    def func(*params):
+        # update the parameters in the model
+        for i, param in enumerate(params):
+            model.trainable_variables[i].assign(param)
+        # calculate the loss
+        loss_value = loss(model(train_x, training=True), train_y)
+
+        return tf.reduce_mean(loss_value)
+
+    func.trainable_variables = model.trainable_variables
+    func.is_keras_functional_model = True
+    return func
