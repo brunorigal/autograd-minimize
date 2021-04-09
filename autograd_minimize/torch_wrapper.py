@@ -108,7 +108,7 @@ class TorchWrapper(BaseWrapper):
             raise NotImplementedError
 
 
-def torch_function_factory(model, loss, train_x, train_y, precision='float32'):
+def torch_function_factory(model, loss, train_x, train_y, precision='float32', optimized_vars=None):
     """
     A factory to create a function of the torch parameter model.
 
@@ -127,16 +127,26 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32'):
     params, names = extract_weights(model)
     
     prec_ = torch.float32 if precision == 'float32' else torch.float64
-    train_x = torch.tensor(train_x, dtype=prec_)
-    train_y = torch.tensor(train_y, dtype=prec_)
+    if isinstance(train_x, np.ndarray):
+        train_x = torch.tensor(train_x, dtype=prec_)
+    if isinstance(train_y, np.ndarray):
+        train_y = torch.tensor(train_y, dtype=prec_)
 
     def func(*new_params):
         load_weights(model, {k: v for  k, v in zip(names, new_params)})
-        out = model(train_x)
+        out = apply_func(model, train_x)
+        
         return loss(out, train_y)
 
     return func, [p.cpu().detach().numpy() for p in params]
 
+def apply_func(func, input_):
+    if isinstance(input_, dict):
+        return func(**input_)
+    elif isinstance(input_, list) or isinstance(input_, tuple):
+        return func(*input_)
+    else:
+        return func(input_)
 
 #### Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py
 
