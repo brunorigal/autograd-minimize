@@ -184,12 +184,14 @@ def extract_weights(mod: nn.Module) -> Tuple[Tuple[Tensor, ...], List[str]]:
     Note that this function modifies the model in place and after this
     call, mod.parameters() will be empty.
     """
-    orig_params = tuple(mod.parameters())
+
+    orig_params =[p for p in mod.parameters() if p.requires_grad]
     # Remove all the parameters in the model
     names = []
     for name, p in list(mod.named_parameters()):
-        _del_nested_attr(mod, name.split("."))
-        names.append(name)
+        if p.requires_grad:
+            _del_nested_attr(mod, name.split("."))
+            names.append(name)
 
     # Make params regular Tensors instead of nn.Parameter
     params = tuple(p.detach().requires_grad_() for p in orig_params)
