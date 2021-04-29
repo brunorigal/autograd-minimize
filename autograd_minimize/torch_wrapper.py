@@ -125,7 +125,8 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
     """    
     # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
     params, names = extract_weights(model)
-    
+    device = params[0].device
+
     prec_ = torch.float32 if precision == 'float32' else torch.float64
     if isinstance(train_x, np.ndarray):
         train_x = torch.tensor(train_x, dtype=prec_)
@@ -133,7 +134,7 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
         train_y = torch.tensor(train_y, dtype=prec_)
 
     def func(*new_params):
-        load_weights(model, {k: v for  k, v in zip(names, new_params)})
+        load_weights(model, {k: v.to(device) for  k, v in zip(names, new_params)})
         out = apply_func(model, train_x)
         
         return loss(out, train_y)
