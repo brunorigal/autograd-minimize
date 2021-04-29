@@ -87,7 +87,7 @@ class TorchWrapper(BaseWrapper):
 
     def _reshape(self, t, sh):
         if torch.is_tensor(t):
-            return t.view(sh)
+            return t.reshape(sh)
         elif isinstance(t, np.ndarray):
             return np.reshape(t, sh)
         else:
