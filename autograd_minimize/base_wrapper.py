@@ -122,6 +122,8 @@ class BaseWrapper(ABC):
             shapes = {}
             for k, t in ten_vals.items():
                 if t is not None:
+                    if isinstance(t, (np.floating, float, int)):
+                        t = np.array(t)
                     shapes[k] = t.shape
                     ten.append(self._reshape(t, [-1]))
             ten = self._tconcat(ten, 0)
@@ -130,13 +132,17 @@ class BaseWrapper(ABC):
             shapes = []
             for t in ten_vals:
                 if t is not None:
+                    if isinstance(t, (np.floating, float, int)):
+                        t = np.array(t)
                     shapes.append(t.shape)
                     ten.append(self._reshape(t, [-1]))
             ten = self._tconcat(ten, 0)
 
         else:
-            shapes = ten_vals.shape
-            ten = self._reshape(ten_vals, [-1])
+            if isinstance(t, (np.floating, float, int)):
+                ten_vals = np.array(ten_vals)
+            shapes = np.array(ten_vals).shape
+            ten = self._reshape(np.array(ten_vals), [-1])
 
         return ten, shapes
 
