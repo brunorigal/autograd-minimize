@@ -2,7 +2,7 @@ import scipy.optimize as sopt
 
 
 def minimize(fun, x0, backend='tf', precision='float32', method=None, 
-    hvp_type=None,
+    hvp_type=None, torch_device='cpu',
     bounds=None, constraints=None, tol=None, callback=None, options=None):
     """
     wrapper around the [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)
@@ -46,6 +46,10 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
         , defaults to None
     :type hvp_type: str, optional
 
+    :param torch_device: device used by torch for the gradients computation, 
+        if the backend is not torch, this parameter is ignored, defaults to 'cpu'
+    :type torch_device: str, optional
+
     :param bounds: Bounds on the input variables, only available for L-BFGS-B, TNC, SLSQP, Powell, and trust-constr methods.
         It can be: 
         * a tuple (min, max), None indicates no bounds, in this case the same bound is applied to all variables. 
@@ -81,7 +85,7 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
         wrapper = TfWrapper(fun, precision=precision, hvp_type=hvp_type)
     elif backend == 'torch':
         from .torch_wrapper import TorchWrapper
-        wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type)
+        wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type, device=torch_device)
     else:
         raise NotImplementedError
 

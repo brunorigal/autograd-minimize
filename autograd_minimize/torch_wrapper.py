@@ -6,8 +6,14 @@ from typing import List, Tuple, Dict, Union, Callable
 from torch import nn, Tensor
 
 class TorchWrapper(BaseWrapper):
-    def __init__(self, func, precision='float32', hvp_type='vhp'):
+    def __init__(self, func, precision='float32', hvp_type='vhp', device='cpu'):
         self.func = func
+
+        # Not very clean...
+        if 'device' in dir(func):
+            self.device = func.device 
+        else:
+            self.device = torch.device(device)
 
         if precision == 'float32':
             self.precision = torch.float32
@@ -23,7 +29,7 @@ class TorchWrapper(BaseWrapper):
             self), 'You must first call get input to define the tensors shapes.'
 
         input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision, requires_grad=True), self.shapes)
+            input_var, dtype=self.precision, requires_grad=True, device=self.device), self.shapes)
 
         loss = self._eval_func(input_var_)
         input_var_grad = input_var_.values() if isinstance(
@@ -41,9 +47,9 @@ class TorchWrapper(BaseWrapper):
             self), 'You must first call get input to define the tensors shapes.'
 
         input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision), self.shapes)
+            input_var, dtype=self.precision, device=self.device), self.shapes)
         vector_ = self._unconcat(torch.tensor(
-            vector, dtype=self.precision), self.shapes)
+            vector, dtype=self.precision, device=self.device), self.shapes)
 
         if isinstance(input_var_, dict):
             input_var_ = tuple(input_var_.values())
@@ -62,7 +68,7 @@ class TorchWrapper(BaseWrapper):
     def get_hess(self, input_var):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = torch.tensor(input_var, dtype=self.precision)
+        input_var_ = torch.tensor(input_var, dtype=self.precision, device=self.device)
 
         def func(inp):
             return self._eval_func(self._unconcat(inp, self.shapes))
@@ -76,7 +82,7 @@ class TorchWrapper(BaseWrapper):
             self), 'You must first call get input to define the tensors shapes.'
 
         input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision, requires_grad=True), self.shapes)
+            input_var, dtype=self.precision, requires_grad=True, device=self.device), self.shapes)
 
         ctr_val = self._eval_ctr_func(input_var_)
         input_var_grad = input_var_.values() if isinstance(
@@ -129,15 +135,17 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
 
     prec_ = torch.float32 if precision == 'float32' else torch.float64
     if isinstance(train_x, np.ndarray):
-        train_x = torch.tensor(train_x, dtype=prec_)
+        train_x = torch.tensor(train_x, dtype=prec_, device=device)
     if isinstance(train_y, np.ndarray):
-        train_y = torch.tensor(train_y, dtype=prec_)
+        train_y = torch.tensor(train_y, dtype=prec_, device=device)
 
     def func(*new_params):
-        load_weights(model, {k: v.to(device) for  k, v in zip(names, new_params)})
+        load_weights(model, {k: v for  k, v in zip(names, new_params)})
         out = apply_func(model, train_x)
         
         return loss(out, train_y)
+
+    func.device = device
 
     return func, [p.cpu().detach().numpy() for p in params]
 
