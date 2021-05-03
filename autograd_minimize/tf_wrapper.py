@@ -119,6 +119,8 @@ class TfWrapper(BaseWrapper):
             return tf.gather(t, tf.range(i, j), 0)
         elif isinstance(t, np.ndarray):
             return t[i:j]
+        elif i+1==j:
+            return t
         else:
             raise NotImplementedError
 
