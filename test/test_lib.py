@@ -137,10 +137,12 @@ def n_knapsack(n_knapsacks=5,
             res = tf.nn.relu(weights_@W-capacity_knapsacks_)
             res = tf.reduce_mean(res**2)
             return res
+        dev = None
     else:
-        weights_ = torch.tensor(weights_, dtype=torch.float32)
+        dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        weights_ = torch.tensor(weights_, dtype=torch.float32, device=dev)
         capacity_knapsacks_ = torch.tensor(
-            capacity_knapsacks, dtype=torch.float32)
+            capacity_knapsacks, dtype=torch.float32, device=dev)
 
         def func(W):
             # We use softmax to impose the constraint that the attribution of items to knapsacks should sum to one
@@ -174,6 +176,7 @@ def n_knapsack(n_knapsacks=5,
                    constraints=constraints,
                    bounds=(0, None),
                    method=method,
+                   torch_device = dev,
                    backend=backend)
     return res
 
