@@ -3,14 +3,14 @@ from time import time
 import numpy as np
 import tensorflow as tf
 import torch
+import torch.nn as nn
 from autograd_minimize import minimize
+from autograd_minimize.tf_wrapper import tf_function_factory
+from autograd_minimize.torch_wrapper import torch_function_factory
 from numpy.random import random
 from numpy.testing import assert_almost_equal
 from tensorflow import keras
 from tensorflow.keras import layers
-from autograd_minimize.tf_wrapper import tf_function_factory
-from autograd_minimize.torch_wrapper import torch_function_factory
-import torch.nn as nn
 
 
 def rosen_tst(backend='torch'):
@@ -176,7 +176,7 @@ def n_knapsack(n_knapsacks=5,
                    constraints=constraints,
                    bounds=(0, None),
                    method=method,
-                   torch_device = dev,
+                   torch_device=dev,
                    backend=backend)
     return res
 
@@ -235,14 +235,15 @@ def test_nknpsack_torch_with_ctr_SLSQP():
                      )
     assert np.all(res.x.argmax(1) == np.array([0, 1, 0, 1]))
 
-def test_keras_model_regression():
-    #### Prepares data
-    X = np.random.random((200, 2))
-    y = X[:,:1]*2+X[:,1:]*0.4-1
 
-    #### Creates model
+def test_keras_model_regression():
+    # Prepares data
+    X = np.random.random((200, 2))
+    y = X[:, :1]*2+X[:, 1:]*0.4-1
+
+    # Creates model
     model = keras.Sequential([keras.Input(shape=2),
-                            layers.Dense(1)])
+                              layers.Dense(1)])
 
     # Transforms model into a function of its parameter
     func, params = tf_function_factory(model, tf.keras.losses.MSE, X, y)
@@ -254,11 +255,11 @@ def test_keras_model_regression():
 
 
 def test_torch_model_regression():
-    #### Prepares data
+    # Prepares data
     X = np.random.random((200, 2))
-    y = X[:,:1]*2+X[:,1:]*0.4-1
+    y = X[:, :1]*2+X[:, 1:]*0.4-1
 
-    #### Creates model
+    # Creates model
     model = nn.Sequential(nn.Linear(2, 1))
 
     # Transforms model into a function of its parameter
