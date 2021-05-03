@@ -138,12 +138,14 @@ class BaseWrapper(ABC):
                     ten.append(self._reshape(t, [-1]))
             ten = self._tconcat(ten, 0)
 
-        else:
-            if isinstance(t, (np.floating, float, int)):
-                ten_vals = np.array(ten_vals)
+        elif isinstance(ten_vals, (np.floating, float, int)):
+            ten_vals = np.array(ten_vals)
             shapes = np.array(ten_vals).shape
             ten = self._reshape(np.array(ten_vals), [-1])
-
+        else:
+            ten_vals = ten_vals
+            shapes = ten_vals.shape
+            ten = self._reshape(ten_vals, [-1])
         return ten, shapes
 
     def _unconcat(self, ten, shapes):
