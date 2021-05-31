@@ -182,7 +182,7 @@ def tf_function_factory(model, loss, train_x, train_y):
     :type train_x: np.ndarray
     :param train_y: dataset used as   ground truth input of the loss
     :type train_y: np.ndarray
-    :return: (function of the parameters, list of parameters)
+    :return: (function of the parameters, list of parameters, names of parameters)
     :rtype: tuple
     """    
 
@@ -205,5 +205,5 @@ def tf_function_factory(model, loss, train_x, train_y):
 
     params = [var.numpy() for var in model.trainable_variables]
     # params = {var.name: var.numpy() for var in model.trainable_variables}
-
-    return func, params
+    names = [var.name for var in model.trainable_variables]
+    return func, params, names

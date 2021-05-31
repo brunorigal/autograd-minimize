@@ -14,7 +14,7 @@ model = keras.Sequential([keras.Input(shape=2),
                           keras.layers.Dense(1)])
 
 # Transforms model into a function of its parameter
-func, params = tf_function_factory(model, tf.keras.losses.MSE, X, y)
+func, params, names = tf_function_factory(model, tf.keras.losses.MSE, X, y)
 
 # Minimization
 res = minimize(func, params, method='trust-constr')

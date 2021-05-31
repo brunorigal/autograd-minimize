@@ -12,7 +12,7 @@ y = X[:,:1]*2+X[:,1:]*0.4-1
 model = nn.Sequential(nn.Linear(2, 1))
 
 # Transforms model into a function of its parameter
-func, params = torch_function_factory(model, nn.MSELoss(), X, y)
+func, params, names = torch_function_factory(model, nn.MSELoss(), X, y)
 
 # Minimization
 res = minimize(func, params, method='trust-constr', backend='torch')

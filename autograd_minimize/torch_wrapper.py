@@ -126,7 +126,7 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
     :type train_x: np.ndarray
     :param train_y: dataset used as   ground truth input of the loss
     :type train_y: np.ndarray
-    :return: (function of the parameters, list of parameters)
+    :return: (function of the parameters, list of parameters, names of parameters)
     :rtype: tuple
     """    
     # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
@@ -147,7 +147,7 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
 
     func.device = device
 
-    return func, [p.cpu().detach().numpy() for p in params]
+    return func, [p.cpu().detach().numpy() for p in params], names
 
 def apply_func(func, input_):
     if isinstance(input_, dict):
