@@ -1,15 +1,14 @@
 import numpy as np
 from tensorflow import keras
-from tensorflow.keras import layers
 from autograd_minimize.tf_wrapper import tf_function_factory
-from autograd_minimize import minimize 
+from autograd_minimize import minimize
 import tensorflow as tf
 
-#### Prepares data
+# Prepares data
 X = np.random.random((200, 2))
-y = X[:,:1]*2+X[:,1:]*0.4-1
+y = X[:, :1]*2+X[:, 1:]*0.4-1
 
-#### Creates model
+# Creates model
 model = keras.Sequential([keras.Input(shape=2),
                           keras.layers.Dense(1)])
 
