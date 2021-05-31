@@ -1,9 +1,9 @@
 import scipy.optimize as sopt
 
 
-def minimize(fun, x0, backend='tf', precision='float32', method=None, 
-    hvp_type=None, torch_device='cpu',
-    bounds=None, constraints=None, tol=None, callback=None, options=None):
+def minimize(fun, x0, backend='tf', precision='float32', method=None,
+             hvp_type=None, torch_device='cpu',
+             bounds=None, constraints=None, tol=None, callback=None, options=None):
     """
     wrapper around the [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)
     function of scipy which includes an automatic computation of gradients, 
@@ -85,30 +85,34 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
         wrapper = TfWrapper(fun, precision=precision, hvp_type=hvp_type)
     elif backend == 'torch':
         from .torch_wrapper import TorchWrapper
-        wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type, device=torch_device)
+        wrapper = TorchWrapper(fun, precision=precision,
+                               hvp_type=hvp_type, device=torch_device)
     else:
         raise NotImplementedError
 
     if bounds is not None:
-        assert method in [None,  'L-BFGS-B', 'TNC', 'SLSQP', 'Powell', 'trust-constr'], 'bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr'
+        assert method in [None,  'L-BFGS-B', 'TNC', 'SLSQP', 'Powell',
+                          'trust-constr'], 'bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr'
 
     if constraints is not None:
-        assert method in ['COBYLA', 'SLSQP', 'trust-constr'], 'Constraints are only available for COBYLA, SLSQP and trust-constr'
+        assert method in [
+            'COBYLA', 'SLSQP', 'trust-constr'], 'Constraints are only available for COBYLA, SLSQP and trust-constr'
 
     optim_res = sopt.minimize(wrapper.get_value_and_grad,
                               wrapper.get_input(x0), method=method, jac=True,
                               hessp=wrapper.get_hvp if method in ['Newton-CG', 'trust-ncg',
                                                                   'trust-krylov', 'trust-constr']
-                                                                else None,
+                              else None,
                               hess=wrapper.get_hess if method in [
                                   'dogleg', 'trust-exact'] else None,
                               bounds=wrapper.get_bounds(bounds),
-                              constraints=wrapper.get_constraints(constraints, method),
+                              constraints=wrapper.get_constraints(
+                                  constraints, method),
                               tol=tol, callback=callback, options=options)
 
     optim_res.x = wrapper.get_output(optim_res.x)
 
-    if 'jac' in optim_res.keys() and len(optim_res.jac)>0:
+    if 'jac' in optim_res.keys() and len(optim_res.jac) > 0:
         try:
             optim_res.jac = wrapper.get_output(optim_res.jac[0])
         except:

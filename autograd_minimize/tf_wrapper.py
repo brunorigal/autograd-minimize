@@ -36,7 +36,7 @@ class TfWrapper(BaseWrapper):
             self), 'You must first call get input to define the tensors shapes.'
         input_var_ = self._unconcat(tf.constant(
             input_var, dtype=self.precision), self.shapes)
-        
+
         value, grads = self._get_value_and_grad_tf(input_var_)
 
         return [value.numpy().astype(np.float64), self._concat(grads)[0].numpy().astype(np.float64)]
@@ -119,7 +119,7 @@ class TfWrapper(BaseWrapper):
             return tf.gather(t, tf.range(i, j), 0)
         elif isinstance(t, np.ndarray):
             return t[i:j]
-        elif i+1==j:
+        elif i+1 == j:
             return t
         else:
             raise NotImplementedError
@@ -184,11 +184,11 @@ def tf_function_factory(model, loss, train_x, train_y):
     :type train_y: np.ndarray
     :return: (function of the parameters, list of parameters, names of parameters)
     :rtype: tuple
-    """    
+    """
 
     # now create a function that will be returned by this factory
     def func(*params):
-        name2pos = {var.name: i for i, var in enumerate(model.trainable_variables)}
+        # name2pos = {var.name: i for i, var in enumerate(model.trainable_variables)}
         # update the parameters in the model
         # for name, param in params.items():
         #     model.trainable_variables[name2pos[name]].assign(param)

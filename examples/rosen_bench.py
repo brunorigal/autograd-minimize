@@ -2,9 +2,7 @@ from time import time
 
 import numpy as np
 import tensorflow as tf
-import torch
 from autograd_minimize import minimize
-from numpy.random import random
 import pandas as pd
 
 

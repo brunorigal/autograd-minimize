@@ -5,13 +5,14 @@ from torch.autograd.functional import hvp, vhp, hessian
 from typing import List, Tuple, Dict, Union, Callable
 from torch import nn, Tensor
 
+
 class TorchWrapper(BaseWrapper):
     def __init__(self, func, precision='float32', hvp_type='vhp', device='cpu'):
         self.func = func
 
         # Not very clean...
         if 'device' in dir(func):
-            self.device = func.device 
+            self.device = func.device
         else:
             self.device = torch.device(device)
 
@@ -68,7 +69,8 @@ class TorchWrapper(BaseWrapper):
     def get_hess(self, input_var):
         assert 'shapes' in dir(
             self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = torch.tensor(input_var, dtype=self.precision, device=self.device)
+        input_var_ = torch.tensor(
+            input_var, dtype=self.precision, device=self.device)
 
         def func(inp):
             return self._eval_func(self._unconcat(inp, self.shapes))
@@ -128,7 +130,7 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
     :type train_y: np.ndarray
     :return: (function of the parameters, list of parameters, names of parameters)
     :rtype: tuple
-    """    
+    """
     # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
     params, names = extract_weights(model)
     device = params[0].device
@@ -140,14 +142,15 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
         train_y = torch.tensor(train_y, dtype=prec_, device=device)
 
     def func(*new_params):
-        load_weights(model, {k: v for  k, v in zip(names, new_params)})
+        load_weights(model, {k: v for k, v in zip(names, new_params)})
         out = apply_func(model, train_x)
-        
+
         return loss(out, train_y)
 
     func.device = device
 
     return func, [p.cpu().detach().numpy() for p in params], names
+
 
 def apply_func(func, input_):
     if isinstance(input_, dict):
@@ -157,11 +160,13 @@ def apply_func(func, input_):
     else:
         return func(input_)
 
-#### Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py
+# Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py
 
 # Utilities to make nn.Module "functional"
 # In particular the goal is to be able to provide a function that takes as input
 # the parameters and evaluate the nn.Module using fixed inputs.
+
+
 def _del_nested_attr(obj: nn.Module, names: List[str]) -> None:
     """
     Deletes the attribute specified by the given list of names.
@@ -172,6 +177,7 @@ def _del_nested_attr(obj: nn.Module, names: List[str]) -> None:
         delattr(obj, names[0])
     else:
         _del_nested_attr(getattr(obj, names[0]), names[1:])
+
 
 def _set_nested_attr(obj: nn.Module, names: List[str], value: Tensor) -> None:
     """
@@ -184,6 +190,7 @@ def _set_nested_attr(obj: nn.Module, names: List[str], value: Tensor) -> None:
     else:
         _set_nested_attr(getattr(obj, names[0]), names[1:], value)
 
+
 def extract_weights(mod: nn.Module) -> Tuple[Tuple[Tensor, ...], List[str]]:
     """
     This function removes all the Parameters from the model and
@@ -194,7 +201,7 @@ def extract_weights(mod: nn.Module) -> Tuple[Tuple[Tensor, ...], List[str]]:
     call, mod.parameters() will be empty.
     """
 
-    orig_params =[p for p in mod.parameters() if p.requires_grad]
+    orig_params = [p for p in mod.parameters() if p.requires_grad]
     # Remove all the parameters in the model
     names = []
     for name, p in list(mod.named_parameters()):

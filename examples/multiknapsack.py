@@ -3,7 +3,6 @@ import numpy as np
 from numpy.random import random
 from time import time
 from autograd_minimize import minimize
-import scipy.optimize as sopt
 import torch
 
 

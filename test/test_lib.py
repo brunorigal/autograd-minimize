@@ -63,13 +63,14 @@ def test_cstr_opt():
     Adapated from: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    def fun(x): return (x[0] - 1)**2 + (x[1] - 2.5)**2
+    def fun(x): 
+        return (x[0] - 1)**2 + (x[1] - 2.5)**2
+
     cons = {'type': 'ineq', 'fun': lambda x:
             np.array([1, -1, -1]) * x[0] + np.array([-2, -2, +2]) * x[1] + np.array([2, 6, 2])}
 
     bnds = ((0, None), (0, None))
 
-    x0 = np.array([1.3, 0.7, 0.8, 1.9, 1.2])
     res = minimize(fun, np.array([2, 0]), method='SLSQP', bounds=bnds,
                    constraints=cons)
 
