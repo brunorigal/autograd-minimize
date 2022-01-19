@@ -133,7 +133,10 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
     """
     # named_params = {k: var.cpu().detach().numpy() for k, var in model.named_parameters()}
     params, names = extract_weights(model)
-    device = params[0].device
+    try:
+        device = params[0].device
+    except IndexError:
+        device = 'cpu'
 
     prec_ = torch.float32 if precision == 'float32' else torch.float64
     if isinstance(train_x, np.ndarray):
