@@ -65,7 +65,7 @@ class BaseWrapper(ABC):
                     self._eval_ctr_func,
                     lb=constraints.get('lb', -np.inf),
                     ub=constraints.get('ub', np.inf),
-                    jac=self.get_ctr_jac if use_autograd else '2-point',
+                    jac='2-point',
                     keep_feasible=constraints.get('keep_feasible', False),
                 )
             elif method in ['COBYLA', 'SLSQP']:
@@ -156,7 +156,6 @@ class BaseWrapper(ABC):
                 next_ind = current_ind+np.prod(sh, dtype=np.int32)
                 ten_vals[k] = self._reshape(
                     self._gather(ten, current_ind, next_ind), sh)
-
                 current_ind = next_ind
 
         elif isinstance(shapes, list) or isinstance(shapes, tuple):
