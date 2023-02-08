@@ -7,50 +7,62 @@ from torch import nn, Tensor
 
 
 class TorchWrapper(BaseWrapper):
-    def __init__(self, func, precision='float32', hvp_type='vhp', device='cpu'):
+    def __init__(self, func, precision="float32", hvp_type="vhp", device="cpu"):
         self.func = func
 
         # Not very clean...
-        if 'device' in dir(func):
+        if "device" in dir(func):
             self.device = func.device
         else:
             self.device = torch.device(device)
 
-        if precision == 'float32':
+        if precision == "float32":
             self.precision = torch.float32
-        elif precision == 'float64':
+        elif precision == "float64":
             self.precision = torch.float64
         else:
             raise ValueError
 
-        self.hvp_func = hvp if hvp_type == 'hvp' else vhp
+        self.hvp_func = hvp if hvp_type == "hvp" else vhp
 
     def get_value_and_grad(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
 
-        input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision, requires_grad=True, device=self.device), self.shapes)
+        input_var_ = self._unconcat(
+            torch.tensor(
+                input_var, dtype=self.precision, requires_grad=True, device=self.device
+            ),
+            self.shapes,
+        )
 
         loss = self._eval_func(input_var_)
-        input_var_grad = input_var_.values() if isinstance(
-            input_var_, dict) else input_var_
+        input_var_grad = (
+            input_var_.values() if isinstance(input_var_, dict) else input_var_
+        )
         grads = torch.autograd.grad(loss, input_var_grad)
 
         if isinstance(input_var_, dict):
             grads = {k: v for k, v in zip(input_var_.keys(), grads)}
 
-        return [loss.cpu().detach().numpy().astype(np.float64),
-                self._concat(grads)[0].cpu().detach().numpy().astype(np.float64)]
+        return [
+            loss.cpu().detach().numpy().astype(np.float64),
+            self._concat(grads)[0].cpu().detach().numpy().astype(np.float64),
+        ]
 
     def get_hvp(self, input_var, vector):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
 
-        input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision, device=self.device), self.shapes)
-        vector_ = self._unconcat(torch.tensor(
-            vector, dtype=self.precision, device=self.device), self.shapes)
+        input_var_ = self._unconcat(
+            torch.tensor(input_var, dtype=self.precision, device=self.device),
+            self.shapes,
+        )
+        vector_ = self._unconcat(
+            torch.tensor(vector, dtype=self.precision, device=self.device), self.shapes
+        )
 
         if isinstance(input_var_, dict):
             input_var_ = tuple(input_var_.values())
@@ -67,10 +79,10 @@ class TorchWrapper(BaseWrapper):
         return self._concat(vhp_res)[0].cpu().detach().numpy().astype(np.float64)
 
     def get_hess(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = torch.tensor(
-            input_var, dtype=self.precision, device=self.device)
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
+        input_var_ = torch.tensor(input_var, dtype=self.precision, device=self.device)
 
         def func(inp):
             return self._eval_func(self._unconcat(inp, self.shapes))
@@ -80,15 +92,21 @@ class TorchWrapper(BaseWrapper):
         return hess.cpu().detach().numpy().astype(np.float64)
 
     def get_ctr_jac(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
 
-        input_var_ = self._unconcat(torch.tensor(
-            input_var, dtype=self.precision, requires_grad=True, device=self.device), self.shapes)
+        input_var_ = self._unconcat(
+            torch.tensor(
+                input_var, dtype=self.precision, requires_grad=True, device=self.device
+            ),
+            self.shapes,
+        )
 
         ctr_val = self._eval_ctr_func(input_var_)
-        input_var_grad = input_var_.values() if isinstance(
-            input_var_, dict) else input_var_
+        input_var_grad = (
+            input_var_.values() if isinstance(input_var_, dict) else input_var_
+        )
         grads = torch.autograd.grad(ctr_val, input_var_grad)
 
         return grads.cpu().detach().numpy().astype(np.float64)
@@ -116,7 +134,9 @@ class TorchWrapper(BaseWrapper):
             raise NotImplementedError
 
 
-def torch_function_factory(model, loss, train_x, train_y, precision='float32', optimized_vars=None):
+def torch_function_factory(
+    model, loss, train_x, train_y, precision="float32", optimized_vars=None
+):
     """
     A factory to create a function of the torch parameter model.
 
@@ -136,9 +156,9 @@ def torch_function_factory(model, loss, train_x, train_y, precision='float32', o
     try:
         device = params[0].device
     except IndexError:
-        device = 'cpu'
+        device = "cpu"
 
-    prec_ = torch.float32 if precision == 'float32' else torch.float64
+    prec_ = torch.float32 if precision == "float32" else torch.float64
     if isinstance(train_x, np.ndarray):
         train_x = torch.tensor(train_x, dtype=prec_, device=device)
     if isinstance(train_y, np.ndarray):
@@ -162,6 +182,7 @@ def apply_func(func, input_):
         return func(*input_)
     else:
         return func(input_)
+
 
 # Adapted from https://github.com/pytorch/pytorch/blob/21c04b4438a766cd998fddb42247d4eb2e010f9a/benchmarks/functional_autograd_benchmark/functional_autograd_benchmark.py
 

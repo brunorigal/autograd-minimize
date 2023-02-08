@@ -1,19 +1,30 @@
 import scipy.optimize as sopt
 
 
-def minimize(fun, x0, backend='tf', precision='float32', method=None,
-             hvp_type=None, torch_device='cpu',
-             bounds=None, constraints=None, tol=None, callback=None, options=None):
+def minimize(
+    fun,
+    x0,
+    backend="tf",
+    precision="float32",
+    method=None,
+    hvp_type=None,
+    torch_device="cpu",
+    bounds=None,
+    constraints=None,
+    tol=None,
+    callback=None,
+    options=None,
+):
     """
     wrapper around the [minimize](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html)
-    function of scipy which includes an automatic computation of gradients, 
-    hessian vector product or hessian with tensorflow or torch backends. 
+    function of scipy which includes an automatic computation of gradients,
+    hessian vector product or hessian with tensorflow or torch backends.
 
     :param fun: function to be minimized, its signature can be a tensor, a list of tensors or a dict of tensors.
     :type fun: tensorflow of torch function
 
     :param x0: input to the function, it must match the signature of the function.
-    :type x0: np.ndarray, list of arrays or dict of arrays. 
+    :type x0: np.ndarray, list of arrays or dict of arrays.
 
     :param backend: one of 'tf' or 'torch', defaults to 'tf'
     :type backend: str, optional
@@ -21,19 +32,19 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
     :param precision: one of 'float32' or 'float64', defaults to 'float32'
     :type precision: str, optional
 
-    :param method: method used by the optimizer, it should be one of: 
-        'Nelder-Mead', 
-        'Powell', 
-        'CG', 
-        'BFGS', 
-        'Newton-CG', 
-        'L-BFGS-B', 
-        'TNC', 
-        'COBYLA', 
-        'SLSQP', 
+    :param method: method used by the optimizer, it should be one of:
+        'Nelder-Mead',
+        'Powell',
+        'CG',
+        'BFGS',
+        'Newton-CG',
+        'L-BFGS-B',
+        'TNC',
+        'COBYLA',
+        'SLSQP',
         'trust-constr',
         'dogleg',  # requires positive semi definite hessian
-        'trust-ncg', 
+        'trust-ncg',
         'trust-exact', # requires hessian
         'trust-krylov'
         , defaults to None
@@ -46,16 +57,16 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
         , defaults to None
     :type hvp_type: str, optional
 
-    :param torch_device: device used by torch for the gradients computation, 
+    :param torch_device: device used by torch for the gradients computation,
         if the backend is not torch, this parameter is ignored, defaults to 'cpu'
     :type torch_device: str, optional
 
     :param bounds: Bounds on the input variables, only available for L-BFGS-B, TNC, SLSQP, Powell, and trust-constr methods.
-        It can be: 
-        * a tuple (min, max), None indicates no bounds, in this case the same bound is applied to all variables. 
-        * An instance of the [Bounds](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.Bounds.html#scipy.optimize.Bounds) class, in this case the same bound is applied to all variables. 
+        It can be:
+        * a tuple (min, max), None indicates no bounds, in this case the same bound is applied to all variables.
+        * An instance of the [Bounds](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.Bounds.html#scipy.optimize.Bounds) class, in this case the same bound is applied to all variables.
         * A numpy array of bounds (if the optimized function has a single numpy array as input)
-        * A list or dict of bounds with the same format as the optimized function signature. 
+        * A list or dict of bounds with the same format as the optimized function signature.
         , defaults to None
     :type bounds: tuple, list, dict or np.ndarray, optional
 
@@ -80,39 +91,55 @@ def minimize(fun, x0, backend='tf', precision='float32', method=None,
     :rtype: dict
     """
 
-    if backend == 'tf':
+    if backend == "tf":
         from .tf_wrapper import TfWrapper
+
         wrapper = TfWrapper(fun, precision=precision, hvp_type=hvp_type)
-    elif backend == 'torch':
+    elif backend == "torch":
         from .torch_wrapper import TorchWrapper
-        wrapper = TorchWrapper(fun, precision=precision,
-                               hvp_type=hvp_type, device=torch_device)
+
+        wrapper = TorchWrapper(
+            fun, precision=precision, hvp_type=hvp_type, device=torch_device
+        )
     else:
         raise NotImplementedError
 
     if bounds is not None:
-        assert method in [None,  'L-BFGS-B', 'TNC', 'SLSQP', 'Powell',
-                          'trust-constr'], 'bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr'
+        assert method in [
+            None,
+            "L-BFGS-B",
+            "TNC",
+            "SLSQP",
+            "Powell",
+            "trust-constr",
+        ], "bounds are only available for L-BFGS-B, TNC, SLSQP, Powell, trust-constr"
 
     if constraints is not None:
         assert method in [
-            'COBYLA', 'SLSQP', 'trust-constr'], 'Constraints are only available for COBYLA, SLSQP and trust-constr'
+            "COBYLA",
+            "SLSQP",
+            "trust-constr",
+        ], "Constraints are only available for COBYLA, SLSQP and trust-constr"
 
-    optim_res = sopt.minimize(wrapper.get_value_and_grad,
-                              wrapper.get_input(x0), method=method, jac=True,
-                              hessp=wrapper.get_hvp if method in ['Newton-CG', 'trust-ncg',
-                                                                  'trust-krylov', 'trust-constr']
-                              else None,
-                              hess=wrapper.get_hess if method in [
-                                  'dogleg', 'trust-exact'] else None,
-                              bounds=wrapper.get_bounds(bounds),
-                              constraints=wrapper.get_constraints(
-                                  constraints, method),
-                              tol=tol, callback=callback, options=options)
+    optim_res = sopt.minimize(
+        wrapper.get_value_and_grad,
+        wrapper.get_input(x0),
+        method=method,
+        jac=True,
+        hessp=wrapper.get_hvp
+        if method in ["Newton-CG", "trust-ncg", "trust-krylov", "trust-constr"]
+        else None,
+        hess=wrapper.get_hess if method in ["dogleg", "trust-exact"] else None,
+        bounds=wrapper.get_bounds(bounds),
+        constraints=wrapper.get_constraints(constraints, method),
+        tol=tol,
+        callback=callback,
+        options=options,
+    )
 
     optim_res.x = wrapper.get_output(optim_res.x)
 
-    if 'jac' in optim_res.keys() and len(optim_res.jac) > 0:
+    if "jac" in optim_res.keys() and len(optim_res.jac) > 0:
         try:
             optim_res.jac = wrapper.get_output(optim_res.jac[0])
         except:
