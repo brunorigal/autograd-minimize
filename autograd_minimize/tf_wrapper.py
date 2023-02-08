@@ -1,60 +1,71 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from numpy.random import random
-from .base_wrapper import BaseWrapper
 from tensorflow.python.eager import forwardprop
+from typing import Callable
+
+from .base_wrapper import BaseWrapper
 
 
 class TfWrapper(BaseWrapper):
-    def __init__(self, func, precision='float32', hvp_type='back_over_back_hvp'):
+    def __init__(
+        self, func, precision: str = "float32", hvp_type: str = "back_over_back_hvp"
+    ):
         self.func = func
-        if 'is_keras_functional_model' not in dir(func):
+        if "is_keras_functional_model" not in dir(func):
             self.keras_model = False
         else:
             self.keras_model = func.is_keras_functional_model
 
-        if precision == 'float32':
+        if precision == "float32":
             self.precision = tf.float32
-        elif precision == 'float64':
+        elif precision == "float64":
             self.precision = tf.float64
         else:
             raise ValueError
 
-        if hvp_type == 'forward_over_back':
+        if hvp_type == "forward_over_back":
             self.hvp_func = _forward_over_back_hvp
-        elif hvp_type == 'back_over_forward':
+        elif hvp_type == "back_over_forward":
             self.hvp_func = _back_over_forward_hvp
-        elif hvp_type == 'tf_gradients_forward_over_back':
+        elif hvp_type == "tf_gradients_forward_over_back":
             self.hvp_func = _tf_gradients_forward_over_back_hvp
-        elif hvp_type == 'back_over_back' or hvp_type is None:
+        elif hvp_type == "back_over_back" or hvp_type is None:
             self.hvp_func = _back_over_back_hvp
         else:
             raise NotImplementedError
 
     def get_value_and_grad(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = self._unconcat(tf.constant(
-            input_var, dtype=self.precision), self.shapes)
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
+        input_var_ = self._unconcat(
+            tf.constant(input_var, dtype=self.precision), self.shapes
+        )
 
         value, grads = self._get_value_and_grad_tf(input_var_)
 
-        return [value.numpy().astype(np.float64), self._concat(grads)[0].numpy().astype(np.float64)]
+        return [
+            value.numpy().astype(np.float64),
+            self._concat(grads)[0].numpy().astype(np.float64),
+        ]
 
     def get_hvp(self, input_var, vector):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = self._unconcat(tf.constant(
-            input_var, dtype=self.precision), self.shapes)
-        vector_ = self._unconcat(tf.constant(
-            vector, dtype=self.precision), self.shapes)
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
+        input_var_ = self._unconcat(
+            tf.constant(input_var, dtype=self.precision), self.shapes
+        )
+        vector_ = self._unconcat(tf.constant(vector, dtype=self.precision), self.shapes)
 
         res = self._get_hvp_tf(input_var_, vector_)
         return self._concat(res)[0].numpy().astype(np.float64)
 
     def get_hess(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
         input_var_ = tf.constant(input_var, dtype=self.precision)
         hess = self._get_hess(input_var_).numpy().astype(np.float64)
 
@@ -82,10 +93,12 @@ class TfWrapper(BaseWrapper):
         return self.hvp_func(self._eval_func, input_var, watch_var, vector)
 
     def get_ctr_jac(self, input_var):
-        assert 'shapes' in dir(
-            self), 'You must first call get input to define the tensors shapes.'
-        input_var_ = self._unconcat(tf.constant(
-            input_var, dtype=self.precision), self.shapes)
+        assert "shapes" in dir(
+            self
+        ), "You must first call get input to define the tensors shapes."
+        input_var_ = self._unconcat(
+            tf.constant(input_var, dtype=self.precision), self.shapes
+        )
 
         jac = self._get_ctr_jac(input_var_)
 
@@ -119,7 +132,7 @@ class TfWrapper(BaseWrapper):
             return tf.gather(t, tf.range(i, j), 0)
         elif isinstance(t, np.ndarray):
             return t[i:j]
-        elif i+1 == j:
+        elif i + 1 == j:
             return t
         else:
             raise NotImplementedError
@@ -139,8 +152,7 @@ def _forward_over_back_hvp(func, input_var, watch_var, vector):
 def _back_over_forward_hvp(func, input_var, watch_var, vector):
     with tf.GradientTape() as grad_tape:
         grad_tape.watch(watch_var)
-        with forwardprop.ForwardAccumulator(
-                watch_var, vector) as acc:
+        with forwardprop.ForwardAccumulator(watch_var, vector) as acc:
             loss = func(input_var)
     return grad_tape.gradient(acc.jvp(loss), watch_var)
 
@@ -168,22 +180,23 @@ def _back_over_back_hvp(func, input_var, watch_var, vector):
     return outer_tape.gradient(grads, watch_var, output_gradients=vector)
 
 
-def tf_function_factory(model, loss, train_x, train_y):
+def tf_function_factory(
+    model: tf.keras.Model, loss: Callable, train_x: np.ndarray, train_y: np.ndarray
+) -> tuple:
     """
     A factory to create a function of the keras parameter model.
 
     The code is adapted from : https://gist.github.com/piyueh/712ec7d4540489aad2dcfb80f9a54993
 
-    :param model: keras model
-    :type model: tf.keras.Model]
-    :param loss: a function with signature loss_value = loss(pred_y, true_y).
-    :type loss: function
-    :param train_x: dataset used as input of the model
-    :type train_x: np.ndarray
-    :param train_y: dataset used as   ground truth input of the loss
-    :type train_y: np.ndarray
-    :return: (function of the parameters, list of parameters, names of parameters)
-    :rtype: tuple
+    Args:
+        * model: keras model
+        * loss: a function with signature loss_value = loss(pred_y, true_y).
+        * train_x: dataset used as input of the model
+        * train_y: dataset used as   ground truth input of the loss
+
+    Return:
+        * (function of the parameters, list of parameters, names of parameters)
+
     """
 
     # now create a function that will be returned by this factory
