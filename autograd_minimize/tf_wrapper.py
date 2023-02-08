@@ -2,12 +2,15 @@ import numpy as np
 import tensorflow as tf
 from numpy.random import random
 from tensorflow.python.eager import forwardprop
+from typing import Callable
 
 from .base_wrapper import BaseWrapper
 
 
 class TfWrapper(BaseWrapper):
-    def __init__(self, func, precision="float32", hvp_type="back_over_back_hvp"):
+    def __init__(
+        self, func, precision: str = "float32", hvp_type: str = "back_over_back_hvp"
+    ):
         self.func = func
         if "is_keras_functional_model" not in dir(func):
             self.keras_model = False
@@ -177,22 +180,23 @@ def _back_over_back_hvp(func, input_var, watch_var, vector):
     return outer_tape.gradient(grads, watch_var, output_gradients=vector)
 
 
-def tf_function_factory(model, loss, train_x, train_y):
+def tf_function_factory(
+    model: tf.keras.Model, loss: Callable, train_x: np.ndarray, train_y: np.ndarray
+) -> tuple:
     """
     A factory to create a function of the keras parameter model.
 
     The code is adapted from : https://gist.github.com/piyueh/712ec7d4540489aad2dcfb80f9a54993
 
-    :param model: keras model
-    :type model: tf.keras.Model]
-    :param loss: a function with signature loss_value = loss(pred_y, true_y).
-    :type loss: function
-    :param train_x: dataset used as input of the model
-    :type train_x: np.ndarray
-    :param train_y: dataset used as   ground truth input of the loss
-    :type train_y: np.ndarray
-    :return: (function of the parameters, list of parameters, names of parameters)
-    :rtype: tuple
+    Args:
+        * model: keras model
+        * loss: a function with signature loss_value = loss(pred_y, true_y).
+        * train_x: dataset used as input of the model
+        * train_y: dataset used as   ground truth input of the loss
+
+    Return:
+        * (function of the parameters, list of parameters, names of parameters)
+
     """
 
     # now create a function that will be returned by this factory
