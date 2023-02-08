@@ -98,7 +98,7 @@ def test_matrix_decomposition(shape=(10, 20), inner_shape=3, method=None):
         return (
             (
                 smv[:, None, :, None] * smp[None, :, None, :]
-                - torch.tensor(Z, dtype=torch.float32)
+                - torch.tensor(prod, dtype=torch.float32)
             )
             ** 2
         ).mean()
