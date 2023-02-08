@@ -4,13 +4,14 @@ import numpy as np
 import tensorflow as tf
 import torch
 import torch.nn as nn
-from autograd_minimize import minimize
-from autograd_minimize.tf_wrapper import tf_function_factory
-from autograd_minimize.torch_wrapper import torch_function_factory
 from numpy.random import random
 from numpy.testing import assert_almost_equal
 from tensorflow import keras
 from tensorflow.keras import layers
+
+from autograd_minimize import minimize
+from autograd_minimize.tf_wrapper import tf_function_factory
+from autograd_minimize.torch_wrapper import torch_function_factory
 
 
 def rosen_tst(backend="torch"):

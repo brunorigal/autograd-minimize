@@ -1,9 +1,11 @@
-import tensorflow as tf
-import numpy as np
-from numpy.random import random
 from time import time
-from autograd_minimize import minimize
+
+import numpy as np
+import tensorflow as tf
 import torch
+from numpy.random import random
+
+from autograd_minimize import minimize
 
 
 def n_knapsack(

@@ -1,8 +1,9 @@
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from numpy.random import random
-from .base_wrapper import BaseWrapper
 from tensorflow.python.eager import forwardprop
+
+from .base_wrapper import BaseWrapper
 
 
 class TfWrapper(BaseWrapper):

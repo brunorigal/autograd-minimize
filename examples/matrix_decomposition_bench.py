@@ -1,10 +1,11 @@
 from time import time
 
+import pandas as pd
 import tensorflow as tf
 import torch
-from autograd_minimize import minimize
 from numpy.random import random
-import pandas as pd
+
+from autograd_minimize import minimize
 
 results = {}
 

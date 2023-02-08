@@ -1,8 +1,9 @@
 import numpy as np
-from tensorflow import keras
-from autograd_minimize.tf_wrapper import tf_function_factory
-from autograd_minimize import minimize
 import tensorflow as tf
+from tensorflow import keras
+
+from autograd_minimize import minimize
+from autograd_minimize.tf_wrapper import tf_function_factory
 
 # Prepares data
 X = np.random.random((200, 2))

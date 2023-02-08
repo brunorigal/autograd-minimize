@@ -1,9 +1,11 @@
+from typing import Callable, Dict, List, Tuple, Union
+
 import numpy as np
 import torch
+from torch import Tensor, nn
+from torch.autograd.functional import hessian, hvp, vhp
+
 from .base_wrapper import BaseWrapper
-from torch.autograd.functional import hvp, vhp, hessian
-from typing import List, Tuple, Dict, Union, Callable
-from torch import nn, Tensor
 
 
 class TorchWrapper(BaseWrapper):

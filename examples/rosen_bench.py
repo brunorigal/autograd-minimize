@@ -1,9 +1,10 @@
 from time import time
 
 import numpy as np
-import tensorflow as tf
-from autograd_minimize import minimize
 import pandas as pd
+import tensorflow as tf
+
+from autograd_minimize import minimize
 
 
 def rosen_tst(backend="torch"):

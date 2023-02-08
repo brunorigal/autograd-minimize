@@ -1,8 +1,9 @@
 import numpy as np
-from autograd_minimize.torch_wrapper import torch_function_factory
-from autograd_minimize import minimize
-import torch.nn as nn
 import torch
+import torch.nn as nn
+
+from autograd_minimize import minimize
+from autograd_minimize.torch_wrapper import torch_function_factory
 
 #### Prepares data
 X = np.random.random((200, 2))
