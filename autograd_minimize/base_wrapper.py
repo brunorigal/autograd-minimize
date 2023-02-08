@@ -48,7 +48,7 @@ class BaseWrapper(ABC):
                         new_bounds += format_bounds(bounds[k], self.shapes[k])
                     else:
                         new_bounds += [(None, None)
-                                       ]**np.prod(self.shapes[k], dtype=np.int32)
+                                       ]*np.prod(self.shapes[k], dtype=np.int32)
         else:
             new_bounds = bounds
         return new_bounds
