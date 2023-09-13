@@ -85,9 +85,11 @@ def minimize(
     elif backend == "torch":
         from .torch_wrapper import TorchWrapper
 
-        wrapper = TorchWrapper(
-            fun, precision=precision, hvp_type=hvp_type, device=torch_device
-        )
+        wrapper = TorchWrapper(fun, precision=precision, hvp_type=hvp_type, device=torch_device)
+    elif backend == "jax":
+        from .jax_wrapper import JaxWrapper
+
+        wrapper = JaxWrapper(fun, precision=precision)
     else:
         raise NotImplementedError
 
@@ -113,9 +115,7 @@ def minimize(
         wrapper.get_input(x0),
         method=method,
         jac=True,
-        hessp=wrapper.get_hvp
-        if method in ["Newton-CG", "trust-ncg", "trust-krylov", "trust-constr"]
-        else None,
+        hessp=wrapper.get_hvp if method in ["Newton-CG", "trust-ncg", "trust-krylov", "trust-constr"] else None,
         hess=wrapper.get_hess if method in ["dogleg", "trust-exact"] else None,
         bounds=wrapper.get_bounds(bounds),
         constraints=wrapper.get_constraints(constraints, method),
