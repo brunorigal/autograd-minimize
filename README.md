@@ -82,7 +82,7 @@ U = random((shape[0], inner_shape))
 V = random((inner_shape, shape[1]))
 prod = U@V
 
-def mat_fac(U=None, V=None):
+def mat_fac(U, V):
     return tf.reduce_mean((U@V-tf.constant(prod, dtype=tf.float32))**2)
 
 x0 = {'U': -random((shape[0], inner_shape)), 'V': random((inner_shape, shape[1]))}
