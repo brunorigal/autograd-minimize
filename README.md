@@ -1,7 +1,7 @@
 # autograd-minimize
 
 autograd-minimize is a wrapper around the minimize routine of scipy which uses the autograd capacities of 
-tensorflow or pytorch to compute automatically the gradients, 
+jax, tensorflow or pytorch to compute automatically the gradients, 
 hessian vector products and hessians.
 
 It also accepts functions of more than one variables as input.
@@ -31,11 +31,23 @@ But you can also use pytorch:
 ```
 import torch
 from autograd_minimize import minimize
+import numpy as np
 
 def rosen_torch(x):
     return (100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0).sum()
     
 res = minimize(rosen_torch, np.array([0.,0.]), backend='torch')
+print(res.x)
+>>> array([0.99999912, 0.99999824])
+```
+
+Or jax:
+```
+import numpy as np
+from autograd_minimize import minimize
+
+rosen_jax=lambda x: (100.0*(x[1:] - x[:-1]**2.0)**2.0 + (1 - x[:-1])**2.0).sum()
+res = minimize(rosen_jax, np.array([0.,0.]), backend='jax')
 print(res.x)
 >>> array([0.99999912, 0.99999824])
 ```
@@ -70,7 +82,7 @@ U = random((shape[0], inner_shape))
 V = random((inner_shape, shape[1]))
 prod = U@V
 
-def mat_fac(U=None, V=None):
+def mat_fac(U, V):
     return tf.reduce_mean((U@V-tf.constant(prod, dtype=tf.float32))**2)
 
 x0 = {'U': -random((shape[0], inner_shape)), 'V': random((inner_shape, shape[1]))}
