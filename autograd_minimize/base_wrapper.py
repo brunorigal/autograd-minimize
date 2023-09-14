@@ -17,18 +17,13 @@ class BaseWrapper(ABC):
         return input_
 
     def get_output(self, output_var):
-        assert "shapes" in dir(
-            self
-        ), "You must first call get input to define the tensors shapes."
+        assert "shapes" in dir(self), "You must first call get input to define the tensors shapes."
         output_var_ = self._unconcat(output_var, self.shapes)
         return output_var_
 
     def get_bounds(self, bounds):
-
         if bounds is not None:
-            if isinstance(bounds, tuple) and not (
-                isinstance(bounds[0], tuple) or isinstance(bounds[0], sopt.Bounds)
-            ):
+            if isinstance(bounds, tuple) and not (isinstance(bounds[0], tuple) or isinstance(bounds[0], sopt.Bounds)):
                 assert len(bounds) == 2
                 new_bounds = [bounds] * self.var_num
 
@@ -53,23 +48,18 @@ class BaseWrapper(ABC):
                     if k in bounds.keys():
                         new_bounds += format_bounds(bounds[k], self.shapes[k])
                     else:
-                        new_bounds += [(None, None)] * np.prod(
-                            self.shapes[k], dtype=np.int32
-                        )
+                        new_bounds += [(None, None)] * np.prod(self.shapes[k], dtype=np.int32)
         else:
             new_bounds = bounds
         return new_bounds
 
     def get_constraints(self, constraints, method):
-        if constraints is not None and not isinstance(
-            constraints, sopt.LinearConstraint
-        ):
+        if constraints is not None and not isinstance(constraints, sopt.LinearConstraint):
             assert isinstance(constraints, dict)
             assert "fun" in constraints.keys()
             self.ctr_func = constraints["fun"]
             use_autograd = constraints.get("use_autograd", True)
             if method in ["trust-constr"]:
-
                 constraints = sopt.NonlinearConstraint(
                     self._eval_ctr_func,
                     lb=constraints.get("lb", -np.inf),
@@ -128,6 +118,9 @@ class BaseWrapper(ABC):
     def _concat(self, ten_vals):
         ten = []
         if isinstance(ten_vals, dict):
+            if "shapes" in dir(self):
+                if not all(map(lambda k: k[1] == k[0], zip(ten_vals.keys(), self.shapes))):
+                    raise AssertionError("Results hould always be in the same order")
             shapes = {}
             for k, t in ten_vals.items():
                 if t is not None:
@@ -163,9 +156,7 @@ class BaseWrapper(ABC):
             ten_vals = {}
             for k, sh in shapes.items():
                 next_ind = current_ind + np.prod(sh, dtype=np.int32)
-                ten_vals[k] = self._reshape(
-                    self._gather(ten, current_ind, next_ind), sh
-                )
+                ten_vals[k] = self._reshape(self._gather(ten, current_ind, next_ind), sh)
                 current_ind = next_ind
 
         elif isinstance(shapes, list) or isinstance(shapes, tuple):
@@ -175,9 +166,7 @@ class BaseWrapper(ABC):
                 ten_vals = []
                 for sh in shapes:
                     next_ind = current_ind + np.prod(sh, dtype=np.int32)
-                    ten_vals.append(
-                        self._reshape(self._gather(ten, current_ind, next_ind), sh)
-                    )
+                    ten_vals.append(self._reshape(self._gather(ten, current_ind, next_ind), sh))
 
                     current_ind = next_ind
 
@@ -186,17 +175,14 @@ class BaseWrapper(ABC):
 
         return ten_vals
 
-    @abstractmethod
     def _reshape(self, t, sh):
-        return
+        return np.reshape(t, sh)
 
-    @abstractmethod
     def _tconcat(self, t_list, dim=0):
-        return
+        return np.concatenate(t_list, dim)
 
-    @abstractmethod
     def _gather(self, t, i, j):
-        return
+        return t[i:j]
 
 
 def format_bounds(bounds_, sh):
